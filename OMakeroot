@@ -37,7 +37,7 @@ uninstall: uninstall_library
   vmount(-l, src/, _build/)
 
   .SUBDIRS: _build/lib/
-    LIB_MODULES[] = flow_base
+    LIB_MODULES[] = flow_base flow_list
     LIB_NAME= flow
     .DEFAULT: $(OCamlLibrary $(LIB_NAME), $(LIB_MODULES))
     META:
