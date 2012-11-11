@@ -1,0 +1,53 @@
+
+open build/OCaml
+DefineCommandVars()
+
+.PHONY: clean install_library install uninstall uninstall_library
+
+USE_OCAMLFIND = true
+
+OCAMLPACKS[] = core lwt lwt.unix lwt.ssl
+
+if $(not $(OCAMLFIND_EXISTS))
+  eprintln(This project requires ocamlfind, but is was not found.)
+  eprintln(You need to install ocamlfind and run "omake --configure".)
+  exit 1
+
+NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
+BYTE_ENABLED = true
+
+OCAMLFLAGS += -thread
+OCAMLCFLAGS +=
+OCAMLOPTFLAGS +=
+OCAML_LINK_FLAGS +=
+OCAML_BYTE_LINK_FLAGS +=
+OCAML_NATIVE_LINK_FLAGS +=
+OCAMLFINDFLAGS +=
+
+
+clean:
+  rm -fr _build OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
+
+install: install_library
+uninstall: uninstall_library
+
+.SUBDIRS: .
+  if $(not $(file-exists _build/))
+    mkdir -p _build/lib
+  vmount(-l, src/, _build/)
+
+  .SUBDIRS: _build/lib/
+    LIB_MODULES[] = flow_base
+    LIB_NAME= flow
+    .DEFAULT: $(OCamlLibrary $(LIB_NAME), $(LIB_MODULES))
+    META:
+      echo "description = \"Exceptionless layer on top of core+lwt\"" > META
+      echo "version = \"1\"" >> META
+      echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
+      echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
+      echo "requires = \"core, lwt, lwt.unix, lwt.ssl\"" >> META
+    install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
+      ocamlfind install $(LIB_NAME) META *.cm[iox] $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
+    uninstall_library:
+      ocamlfind remove $(LIB_NAME)
+
