@@ -1,3 +1,4 @@
+_build/
 *.annot
 *.cmo
 *.cma
@@ -7,3 +8,6 @@
 *.cmx
 *.cmxs
 *.cmxa
+/.omakedb
+/.omakedb.lock
+/OMakeroot.omc
