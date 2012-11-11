@@ -6,7 +6,7 @@ DefineCommandVars()
 
 USE_OCAMLFIND = true
 
-OCAMLPACKS[] = core lwt lwt.unix lwt.ssl
+OCAMLPACKS[] = core lwt lwt.unix lwt.ssl lwt.preemptive
 
 if $(not $(OCAMLFIND_EXISTS))
   eprintln(This project requires ocamlfind, but is was not found.)
@@ -37,7 +37,7 @@ uninstall: uninstall_library
   vmount(-l, src/, _build/)
 
   .SUBDIRS: _build/lib/
-    LIB_MODULES[] = flow_base flow_list flow_io flow_sys flow_net
+    LIB_MODULES[] = flow_base flow_list flow_io flow_sys flow_net flow
     LIB_NAME= flow
     .DEFAULT: $(OCamlLibrary $(LIB_NAME), $(LIB_MODULES))
     META:
@@ -45,7 +45,7 @@ uninstall: uninstall_library
       echo "version = \"1\"" >> META
       echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
       echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
-      echo "requires = \"core, lwt, lwt.unix, lwt.ssl\"" >> META
+      echo "requires = \"core, lwt, lwt.unix, lwt.ssl lwt.preemptive \"" >> META
     install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
       ocamlfind install $(LIB_NAME) META *.cm[iox] $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
     uninstall_library:
