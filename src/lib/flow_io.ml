@@ -1,6 +1,9 @@
 open Core.Std
 open Flow_base
 
+(******************************************************************************)
+(* Binary Messages *)
+
 let max_message_length = 10_000_000
   
 let bin_send oc msg =
@@ -34,3 +37,82 @@ let bin_recv ic =
   else
     return s
       
+(******************************************************************************)
+(* Biocaml/Crytokit-style transforms *)
+
+module Transform = struct
+
+  class type ['input, 'output] t = object
+    method next: [ `output of 'output | `end_of_stream | `not_ready ]
+    method feed:  'input -> unit
+    method stop: unit
+  end
+
+  let augment_error = function
+    | Ok o -> return o
+    | Error e -> error (`transform e)
+        
+  let file_to_file
+      (type error) (transfo: (string, (string, error) Result.t) t)
+      ?(input_buffer_size=42_000) input_file
+      ?(output_buffer_size=42_000) output_file =
+    let module With_exceptions = struct
+      exception Transform of error
+      exception Premature_termination
+      open Lwt
+      open Lwt_io
+      let go () =
+        with_file ~mode:input ~buffer_size:input_buffer_size input_file (fun i ->
+          with_file ~mode:output ~buffer_size:output_buffer_size output_file (fun o ->
+            let rec print_all stopped =
+              match transfo#next with
+              | `output (Ok s) ->
+                write o s
+                >>= fun () ->
+                print_all stopped
+              | `end_of_stream ->
+                if stopped then
+                (* Lwt_io.eprintf "=====  WELL TERMINATED \n%!" *)
+                  return ()
+                else begin
+                (* Lwt_io.eprintf "=====  PREMATURE TERMINATION \n%!" >>= fun () -> *)
+                  fail (Premature_termination)
+                end
+            | `not_ready ->
+              (* dbg "NOT READY" >>= fun () -> *)
+              if stopped then print_all stopped else return ()
+            | `output (Error (e)) ->
+              (* Lwt_io.eprintf "=====  ERROR: %s\n%!" s *)
+              fail (Transform e)
+            in
+            let rec loop () =
+              read ~count:input_buffer_size i
+              >>= fun read_string ->
+            (* dbg verbose "read_string: %d" (String.length read_string) *)
+            (* >>= fun () -> *)
+              if read_string = "" then (
+                transfo#stop;
+                print_all true
+              ) else (
+                transfo#feed read_string;
+                print_all false
+                >>= fun () ->
+                loop ()
+              )
+            in
+            loop ()
+          >>= fun () ->
+            return (Ok ())
+          ))
+      let go_safe () =
+        Lwt.catch go
+          begin function
+          | Premature_termination -> Flow_base.error `stopped_before_end_of_stream
+          | Transform e -> Flow_base.error (`transform_error e)
+          | e -> Flow_base.error (`io_exn e)
+          end
+    end in
+    With_exceptions.go_safe ()
+    >>< augment_error
+
+end
