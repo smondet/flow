@@ -6,7 +6,7 @@ DefineCommandVars()
 
 USE_OCAMLFIND = true
 
-OCAMLPACKS[] = core lwt lwt.unix lwt.ssl lwt.preemptive
+OCAMLPACKS[] = core lwt lwt.unix lwt.ssl lwt.preemptive 
 
 if $(not $(OCAMLFIND_EXISTS))
   eprintln(This project requires ocamlfind, but is was not found.)
@@ -16,13 +16,13 @@ if $(not $(OCAMLFIND_EXISTS))
 NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
 BYTE_ENABLED = true
 
-OCAMLFLAGS += -thread -bin-annot
+OCAMLFLAGS += -thread -bin-annot -annot -absname
 OCAMLCFLAGS +=
 OCAMLOPTFLAGS +=
 OCAML_LINK_FLAGS +=
 OCAML_BYTE_LINK_FLAGS +=
 OCAML_NATIVE_LINK_FLAGS +=
-OCAMLFINDFLAGS +=
+OCAMLFINDFLAGS += 
 
 
 clean:
@@ -40,7 +40,7 @@ tags: TAGS
 
 .SUBDIRS: .
   if $(not $(file-exists _build/))
-    mkdir -p _build/lib
+    mkdir -p _build/lib _build/test
   vmount(-l, src/, _build/)
 
   .SUBDIRS: _build/lib/
@@ -56,4 +56,12 @@ tags: TAGS
       ocamlfind install $(LIB_NAME) META *.cm[iox] $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
     uninstall_library:
       ocamlfind remove $(LIB_NAME)
+
+  .SUBDIRS: _build/test/
+    OCAMLFINDFLAGS += -syntax camlp4o
+    OCAMLFLAGS += -I ../lib
+    OCAMLCFLAGS += flow.cma
+    OCAMLOPTFLAGS += flow.cmxa
+    OCAMLPACKS[] +=  sexplib sexplib.syntax
+    .DEFAULT: $(OCamlProgram io_test, io_test)
 
