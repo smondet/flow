@@ -30,6 +30,8 @@ module Transform: sig
   end
   (** Universal (buffered) transformation between streams. *)
 
+  val transform_stream: ('a, 'b) t -> 'a Lwt_stream.t -> 'b Lwt_stream.t
+  (** Use a transform to process a [Lwt_stream.t]. *) 
           
   val file_to_file:
     (string, (string, 'error) Core.Result.t) t ->

@@ -52,6 +52,21 @@ module Transform = struct
     | Ok o -> return o
     | Error e -> error (`transform e)
         
+  let transform_stream tr stream =
+    let open Lwt in
+    let rec loop_until_ready tr stream =
+      match tr#next with
+      | `output o -> return (Some o)
+      | `end_of_stream -> return None
+      | `not_ready ->
+        Lwt_stream.get stream
+        >>= begin function
+        | None -> tr#stop; loop_until_ready tr stream
+        | Some s -> tr#feed s; loop_until_ready tr stream
+        end
+    in
+    Lwt_stream.from (fun () -> loop_until_ready tr stream)
+
   let file_to_file
       (type error) (transfo: (string, (string, error) Result.t) t)
       ?(input_buffer_size=42_000) input_file
