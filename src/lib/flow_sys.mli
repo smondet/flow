@@ -30,3 +30,9 @@ val get_system_command_output: string ->
        [> `exited of int | `exn of exn | `signaled of int | `stopped of int ]
    ]) t
 
+val with_timeout : float ->
+  f:(unit -> ('a, [> `io_exn of exn | `timeout of float ] as 'b) t) ->
+  ('a, 'b) t
+(** Execute a function [f] with a timeout (in seconds). If [f] throws
+    an exception it will be passed as [`io_exn e], if the functions
+    timeouts the error will be [`timeout time]. *)

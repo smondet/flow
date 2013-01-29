@@ -48,3 +48,12 @@ let get_system_command_output s =
   | _ -> assert false
   end
 
+let with_timeout time ~f =
+  Lwt.catch
+    begin fun () ->
+      Lwt_unix.with_timeout time f
+    end
+    begin function
+    | Lwt_unix.Timeout -> error (`timeout time)
+    | e -> error (`io_exn e)
+    end
