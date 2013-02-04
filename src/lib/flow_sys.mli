@@ -46,3 +46,20 @@ val mkdir_p : ?perm:int -> string ->
    [> `system of
        [> `mkdir of string ] *
          [> `exn of exn | `wrong_access_rights of int ] ]) t
+
+(** Get information about a path (whether it exists, its size, or
+    sym-link destination). If [follow_symlink] is [false]
+    (default) use [lstat] (so the result can be [`symlink _]), if [true]
+    call [stat] (information about the target).  *)
+val file_info :
+  ?follow_symlink:bool -> string ->
+  ([ `absent
+   | `file of int
+   | `symlink of string
+   | `block_device
+   | `character_device
+   | `directory
+   | `fifo
+   | `socket],
+   [> `system of [> `file_info of string ] * [> `exn of exn ] ]) t
+

@@ -90,4 +90,42 @@ let mkdir_p ?perm dirname =
   >>= fun _ ->
   return ()
       
+let file_info ?(follow_symlink=false) path =
+  let stat_fun =
+    if follow_symlink then Lwt_unix.stat else Lwt_unix.lstat in
+  eprintf "(l)stat %s? \n%!" path;
+  Lwt.catch
+    Lwt.(fun () -> stat_fun path >>= fun s -> return (Ok (`unix_stats s)))
+    begin function
+    | Unix.Unix_error (Unix.ENOENT, cmd, arg)  -> return `absent
+    | e -> error (`system (`file_info path, `exn e))
+    end
+  >>= fun m ->
+  let open Lwt_unix in
+  begin match m with
+  | `absent -> return `absent
+  | `unix_stats stats ->
+    begin match stats.st_kind with
+    | S_DIR -> return (`directory)
+    | S_REG -> return (`file (stats.st_size))
+    | S_LNK -> 
+      eprintf "readlink %s? \n%!" path;
+      begin
+        Flow_base.catch_io Lwt_unix.readlink path
+        >>< begin function
+        | Ok s -> return s
+        | Error e -> error (`system (`file_info path, `exn e))
+        end
+      end
+      >>= fun destination ->
+      eprintf "readlink %s worked \n%!" path;
+      return (`symlink destination)
+    | S_CHR -> return (`character_device)
+    | S_BLK -> return (`block_device)
+    | S_FIFO -> return (`fifo)
+    | S_SOCK -> return (`socket)
+    end
+  end
+    
+     
 
