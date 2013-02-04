@@ -60,10 +60,10 @@ let copy () =
   IO.write_file tmp ~content:"foo!"
   >>= fun () ->
   IO.with_in_channel (`file tmp) ~buffer_size:42 ~f:(fun i ->
-    wrap_io Lwt_io.read i
+    IO.read i
     >>= fun content ->
     IO.with_out_channel (`stdout) (fun o ->
-      ksprintf (IO.output o) "Content of %s is %S\n" tmp content))
+      ksprintf (IO.write o) "Content of %s is %S\n" tmp content))
 
 let main () =
   basic_file_to_file ()

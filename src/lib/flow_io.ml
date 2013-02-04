@@ -99,6 +99,8 @@ let with_in_channel inspec ?buffer_size ~f =
     end
   end
 
+let read ?count i =
+  wrap_io (Lwt_io.read ?count) i
 
 (******************************************************************************)
 (* Whole Files *)

@@ -55,6 +55,11 @@ val with_in_channel:
   f:(Lwt_io.input_channel -> ('a, [> `io_exn of exn] as 'err) t) ->
   ('a, 'err) t
 
+(** Read [count] bytes from an input-channel (default: “as much as possible”,
+    c.f. {{:http://ocsigen.org/lwt/api/Lwt_io#VALread}Lwt_io.read}). *)
+val read: ?count:int -> Lwt_io.input_channel ->
+  (string, [> `io_exn of exn]) t
+
 (** {3 Biocaml/Crytokit-style Transforms} *)
 
 module Transform: sig
