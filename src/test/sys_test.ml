@@ -5,7 +5,7 @@ let say fmt =
   ksprintf (fun s -> eprintf "%s\n%!" s) fmt
 
 let test_mkdir () =
-  let tmp = Filename.temp_dir "sys_test_mkdir" ".bin" in
+  let tmp = Filename.temp_dir "sys_test_mkdir" "_dir" in
   ksprintf Sys.system_command "rm -fr %s" tmp
   >>= fun () ->
   Sys.mkdir ~perm:0o777 tmp
@@ -27,6 +27,11 @@ let test_mkdir () =
     | Error e -> say "ERROR: Got wrong error"; error e
     end
   end
+  >>= fun () ->
+  let path = Filename.concat tmp "some/very/long/path" in
+  Sys.mkdir_p path
+  >>= fun () ->
+  ksprintf Sys.system_command "find %s -type d" tmp
   >>= fun () ->
   say "test_mkdir: OK";
   return ()
