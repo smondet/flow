@@ -15,5 +15,10 @@ val while_sequential: 'a list -> f:('a -> ('c, 'b) t) -> ('c list, 'b) t
     The function returns the list of successes and the list of errors.  *)
 val for_sequential: 'a list -> f:('a -> ('c, 'b) t) -> ('c list * 'b list, 'd) t
 
-(** Like [for_sequential] but all the thread are launched concurrently. *) 
+(** Like [for_sequential] but all the threads are launched concurrently. *) 
 val for_concurrent: 'a list -> f:('a -> ('c, 'b) t) -> ('c list * 'b list, 'd) t
+
+(** Like [for_concurrent] but with the index in the list passed to the
+    function. *)
+val for_concurrent_with_index:
+  'a list -> f:(int -> 'a -> ('c, 'b) t) -> ('c list * 'b list, 'd) t
