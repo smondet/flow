@@ -36,7 +36,38 @@ let bin_recv ic =
     error (`bin_recv (`wrong_length (c, s)))
   else
     return s
-      
+
+(******************************************************************************)      
+(* Channels *)
+
+let with_out_channel out ?buffer_size ~f =
+  begin match out with
+  | `stdout -> return Lwt_io.stdout
+  | `strerr -> return Lwt_io.stderr
+  | `channel c -> return c
+  | `file file ->
+    wrap_io (Lwt_io.open_file ~mode:Lwt_io.output ?buffer_size) file
+  end
+  >>= fun outchan ->
+  begin
+    f outchan
+    >>< begin function
+    | Ok o ->
+      wrap_io Lwt_io.close outchan
+      >>= fun () ->
+      return o
+    | Error e ->
+      begin match out with
+      | `file _ ->
+        wrap_io Lwt_io.close outchan
+        >>= fun _ ->
+        error e
+      | _ -> error e
+      end
+    end
+  end
+
+    
 (******************************************************************************)
 (* Biocaml/Crytokit-style transforms *)
 
