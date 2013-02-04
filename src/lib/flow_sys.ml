@@ -1,6 +1,6 @@
 open Core.Std
 open Flow_base
-  
+
 
 let discriminate_process_status s ret =
   begin match ret with
@@ -9,7 +9,7 @@ let discriminate_process_status s ret =
   | Lwt_unix.WSIGNALED n -> error (`system_command_error (s, `signaled n))
   | Lwt_unix.WSTOPPED n -> error (`system_command_error (s, `stopped n))
   end
-      
+
 let system_command s =
   bind_on_error ~f:(fun e -> error (`system_command_error (s, `exn e)))
     (catch_io () ~f:Lwt_io.(fun () -> Lwt_unix.system s))
@@ -19,7 +19,7 @@ let system_command s =
 let sleep f =
   wrap_io Lwt_unix.sleep f
 
-    
+
 let get_system_command_output s =
   bind_on_error ~f:(fun e -> error (`system_command_error (s, `exn e)))
     (catch_io
@@ -49,7 +49,7 @@ let with_timeout time ~f =
     | e -> error (`io_exn e)
     end
 
-    
+
 let mkdir ?(perm=0o700) dirname =
   Lwt.catch
     Lwt.(fun () -> Lwt_unix.mkdir dirname perm >>= fun () -> return (Ok ()))
@@ -58,10 +58,10 @@ let mkdir ?(perm=0o700) dirname =
       error (`system (`mkdir dirname, `wrong_access_rights perm))
     | Unix.Unix_error (Unix.EEXIST, cmd, arg)  ->
       error (`system (`mkdir dirname, `already_exists))
-    | e -> 
+    | e ->
       error (`system (`mkdir dirname, `exn e))
     end
-      
+
 let mkdir_even_if_exists ?(perm=0o700) dirname =
   Lwt.catch
     Lwt.(fun () -> Lwt_unix.mkdir dirname perm >>= fun () -> return (Ok ()))
@@ -89,17 +89,17 @@ let mkdir_p ?perm dirname =
     return dir)
   >>= fun _ ->
   return ()
-      
+
 (*
-  WARNING: this is a work-around for issue [329] with Lwt_unix.readlink. 
+  WARNING: this is a work-around for issue [329] with Lwt_unix.readlink.
   When it is fixed, we should go back to Lwt_unix.
-  
+
   [329]: http://ocsigen.org/trac/ticket/329
-*)    
+*)
 let lwt_unix_readlink l =
   let open Lwt in
-  Lwt_preemptive.detach Unix.readlink l 
-  
+  Lwt_preemptive.detach Unix.readlink l
+
 let file_info ?(follow_symlink=false) path =
   let stat_fun =
     if follow_symlink then Lwt_unix.stat else Lwt_unix.lstat in
@@ -118,7 +118,7 @@ let file_info ?(follow_symlink=false) path =
     begin match stats.st_kind with
     | S_DIR -> return (`directory)
     | S_REG -> return (`file (stats.st_size))
-    | S_LNK -> 
+    | S_LNK ->
       eprintf "readlink %s? \n%!" path;
       begin
         Flow_base.catch_io lwt_unix_readlink path
@@ -136,6 +136,6 @@ let file_info ?(follow_symlink=false) path =
     | S_SOCK -> return (`socket)
     end
   end
-    
-     
+
+
 
