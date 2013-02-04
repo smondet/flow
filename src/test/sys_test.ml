@@ -36,12 +36,43 @@ let test_mkdir () =
   say "test_mkdir: OK";
   return ()
 
+let test_file_info () =
+  let tmp = Filename.temp_dir "sys_test_file_info" "_dir" in
+  ksprintf Sys.system_command "cd %s && ln -s /tmp symlink_to_dir" tmp
+  >>= fun () ->
+  ksprintf Sys.system_command "cd %s && ln -s /etc/passwd symlink_to_file" tmp
+  >>= fun () ->
+  let check ?follow_symlink matches path =
+    Sys.file_info ?follow_symlink path
+    >>= begin function
+    | o when matches o -> return ()
+    | e -> error (`wrong_file_info e)
+    end
+  in
+  check ((=) `directory) "/" >>= fun () ->
+  check (function `file _ -> true | _ -> false) "/etc/passwd" >>= fun () ->
+  (*
+
+WARNING: test disabled while investigating issue with Lwt_unix.readlink:
+    http://ocsigen.org/trac/ticket/329
+    
+  ksprintf (check ((=) (`symlink "/etc/passwd"))) "%s/symlink_to_file" tmp
+  >>= fun () ->
+  ksprintf (check ((=) (`symlink "/tmp"))) "%s/symlink_to_dir" tmp
+  >>= fun () ->
+
+  *)
+  ksprintf Sys.system_command "ls -l %s " tmp
+  >>= fun () ->
+  say "test_file_info: OK";
+  return ()
+
 
 let main () =
   say "sys_test: GO!";
   test_mkdir ()
   >>= fun () ->
-  return ()
+  test_file_info ()
     
 let () =
   match Lwt_main.run (main ()) with
@@ -50,8 +81,17 @@ let () =
     eprintf "End with Error:\n%s\n%!"
       (<:sexp_of<
           [ `system of
-              [ `mkdir of string ] *
+              [`file_info of string | `mkdir of string ] *
                 [ `already_exists | `exn of exn | `wrong_access_rights of int ]
+          | `wrong_file_info of
+              [ `absent
+              | `block_device
+              | `character_device
+              | `directory
+              | `fifo
+              | `file of int
+              | `socket
+              | `symlink of string ]
           | `system_command_error of
               string *
                 [ `exited of int
