@@ -46,6 +46,15 @@ val output: Lwt_io.output_channel -> string -> (unit, [> `io_exn of exn]) t
 (** Flush an output channel. *)
 val flush: Lwt_io.output_channel ->  (unit, [> `io_exn of exn]) t
   
+(** Run a function [f] on an input channel, if the channel comes from
+    a [`file f], it will be closed before returning (in case of success,
+    or error, but not for exceptions). *)
+val with_in_channel:
+  [ `channel of Lwt_io.input_channel | `file of string | `stdin ] ->
+  ?buffer_size:int ->
+  f:(Lwt_io.input_channel -> ('a, [> `io_exn of exn] as 'err) t) ->
+  ('a, 'err) t
+
 (** {3 Biocaml/Crytokit-style Transforms} *)
 
 module Transform: sig

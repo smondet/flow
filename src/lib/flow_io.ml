@@ -72,6 +72,33 @@ let output out s =
     
 let flush out = wrap_io Lwt_io.flush out
 
+
+let with_in_channel inspec ?buffer_size ~f =
+  begin match inspec with
+  | `stdin -> return Lwt_io.stdin
+  | `channel c -> return c
+  | `file file ->
+    wrap_io (Lwt_io.open_file ~mode:Lwt_io.input ?buffer_size) file
+  end
+  >>= fun inchan ->
+  begin
+    f inchan
+    >>< begin function
+    | Ok o ->
+      wrap_io Lwt_io.close inchan
+      >>= fun () ->
+      return o
+    | Error e ->
+      begin match inspec with
+      | `file _ ->
+        wrap_io Lwt_io.close inchan
+        >>= fun _ ->
+        error e
+      | _ -> error e
+      end
+    end
+  end
+  
     
 (******************************************************************************)
 (* Whole Files *)
