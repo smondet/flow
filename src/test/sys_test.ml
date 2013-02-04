@@ -46,7 +46,7 @@ let test_file_info () =
     Sys.file_info ?follow_symlink path
     >>= begin function
     | o when matches o -> return ()
-    | e -> error (`wrong_file_info e)
+    | e -> error (`wrong_file_info (path, e))
     end
   in
   check ((=) `directory) "/" >>= fun () ->
@@ -54,6 +54,8 @@ let test_file_info () =
   ksprintf (check ((=) (`symlink "/etc/passwd"))) "%s/symlink_to_file" tmp
   >>= fun () ->
   ksprintf (check ((=) (`symlink "/tmp"))) "%s/symlink_to_dir" tmp
+  >>= fun () ->
+  check ((=) `absent) "/sldkfjslakjfdlksj"
   >>= fun () ->
 
   ksprintf Sys.system_command "ls -l %s " tmp
@@ -67,7 +69,7 @@ let main () =
   test_mkdir ()
   >>= fun () ->
   test_file_info ()
-    
+
 let () =
   match Lwt_main.run (main ()) with
   | Ok () -> ()
@@ -77,7 +79,7 @@ let () =
           [ `system of
               [`file_info of string | `mkdir of string ] *
                 [ `already_exists | `exn of exn | `wrong_access_rights of int ]
-          | `wrong_file_info of
+          | `wrong_file_info of string *
               [ `absent
               | `block_device
               | `character_device
