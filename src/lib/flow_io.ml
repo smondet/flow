@@ -70,6 +70,9 @@ let with_out_channel out ?buffer_size ~f =
 let output out s =
   wrap_io (Lwt_io.fprint out) s
     
+let flush out = wrap_io Lwt_io.flush out
+
+    
 (******************************************************************************)
 (* Whole Files *)
 

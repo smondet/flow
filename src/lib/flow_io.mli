@@ -43,6 +43,9 @@ val with_out_channel:
 (** Safely call [Lwt_io.fprint]. *)
 val output: Lwt_io.output_channel -> string -> (unit, [> `io_exn of exn]) t
     
+(** Flush an output channel. *)
+val flush: Lwt_io.output_channel ->  (unit, [> `io_exn of exn]) t
+  
 (** {3 Biocaml/Crytokit-style Transforms} *)
 
 module Transform: sig
