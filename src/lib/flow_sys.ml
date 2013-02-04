@@ -90,6 +90,16 @@ let mkdir_p ?perm dirname =
   >>= fun _ ->
   return ()
       
+(*
+  WARNING: this is a work-around for issue [329] with Lwt_unix.readlink. 
+  When it is fixed, we should go back to Lwt_unix.
+  
+  [329]: http://ocsigen.org/trac/ticket/329
+*)    
+let lwt_unix_readlink l =
+  let open Lwt in
+  Lwt_preemptive.detach Unix.readlink l 
+  
 let file_info ?(follow_symlink=false) path =
   let stat_fun =
     if follow_symlink then Lwt_unix.stat else Lwt_unix.lstat in
@@ -111,7 +121,7 @@ let file_info ?(follow_symlink=false) path =
     | S_LNK -> 
       eprintf "readlink %s? \n%!" path;
       begin
-        Flow_base.catch_io Lwt_unix.readlink path
+        Flow_base.catch_io lwt_unix_readlink path
         >>< begin function
         | Ok s -> return s
         | Error e -> error (`system (`file_info path, `exn e))
