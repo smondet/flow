@@ -5,7 +5,7 @@ open Flow_base
 (* Binary Messages *)
 
 let max_message_length = 10_000_000
-  
+
 let bin_send oc msg =
   if String.length msg > max_message_length then
     error (`bin_send (`message_too_long msg))
@@ -37,7 +37,7 @@ let bin_recv ic =
   else
     return s
 
-(******************************************************************************)      
+(******************************************************************************)
 (* Channels *)
 
 let with_out_channel out ?buffer_size ~f =
@@ -67,9 +67,9 @@ let with_out_channel out ?buffer_size ~f =
     end
   end
 
-let output out s =
+let write out s =
   wrap_io (Lwt_io.fprint out) s
-    
+
 let flush out = wrap_io Lwt_io.flush out
 
 
@@ -98,8 +98,8 @@ let with_in_channel inspec ?buffer_size ~f =
       end
     end
   end
-  
-    
+
+
 (******************************************************************************)
 (* Whole Files *)
 
@@ -127,7 +127,7 @@ module Transform = struct
   let augment_error = function
     | Ok o -> return o
     | Error e -> error (`transform e)
-        
+
   let transform_stream tr stream =
     let open Lwt in
     let rec loop_until_ready tr stream =

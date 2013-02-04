@@ -8,7 +8,7 @@ open Flow_base
 (** The maximum message length (10 million bytes right now). *)
 val max_message_length: int
 
-(** Write a message on an output channel (size: 32 bits big endian, string). *)  
+(** Write a message on an output channel (size: 32 bits big endian, string). *)
 val bin_send : Lwt_io.output_channel -> string ->
   (unit,
    [> `bin_send of [> `exn of exn | `message_too_long of string ] ]) t
@@ -19,14 +19,14 @@ val bin_recv : Lwt_io.input_channel ->
    [> `bin_recv of [> `exn of exn | `wrong_length of int * string ] ]) t
 
 
-(** {3 Whole Files} *)    
+(** {3 Whole Files} *)
 
 (** Write a string to a file. *)
 val write_file: string -> content:string ->
   (unit, [> `write_file_error of (string * exn)]) t
 
 (** Read a string from a file. *)
-val read_file: string -> 
+val read_file: string ->
   (string, [> `read_file_error of (string * exn)]) t
 
 (** {3 Access To Channels } *)
@@ -41,11 +41,11 @@ val with_out_channel:
   ('a, 'err) t
 
 (** Safely call [Lwt_io.fprint]. *)
-val output: Lwt_io.output_channel -> string -> (unit, [> `io_exn of exn]) t
-    
+val write: Lwt_io.output_channel -> string -> (unit, [> `io_exn of exn]) t
+
 (** Flush an output channel. *)
 val flush: Lwt_io.output_channel ->  (unit, [> `io_exn of exn]) t
-  
+
 (** Run a function [f] on an input channel, if the channel comes from
     a [`file f], it will be closed before returning (in case of success,
     or error, but not for exceptions). *)
@@ -67,8 +67,8 @@ module Transform: sig
   (** Universal (buffered) transformation between streams. *)
 
   val transform_stream: ('a, 'b) t -> 'a Lwt_stream.t -> 'b Lwt_stream.t
-  (** Use a transform to process a [Lwt_stream.t]. *) 
-          
+  (** Use a transform to process a [Lwt_stream.t]. *)
+
   val file_to_file:
     (string, (string, 'error) Core.Result.t) t ->
     ?input_buffer_size:int ->
