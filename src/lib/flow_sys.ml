@@ -48,3 +48,18 @@ let with_timeout time ~f =
     | Lwt_unix.Timeout -> error (`timeout time)
     | e -> error (`io_exn e)
     end
+
+    
+let mkdir ?(perm=0o700) dirname =
+  Lwt.catch
+    Lwt.(fun () -> Lwt_unix.mkdir dirname perm >>= fun () -> return (Ok ()))
+    begin function
+    | Unix.Unix_error (Unix.EACCES, cmd, arg)  ->
+      error (`system (`mkdir dirname, `wrong_access_rights perm))
+    | Unix.Unix_error (Unix.EEXIST, cmd, arg)  ->
+      error (`system (`mkdir dirname, `already_exists))
+    | e -> 
+      error (`system (`mkdir dirname, `exn e))
+    end
+      
+

@@ -28,3 +28,16 @@ val with_timeout : float ->
 (** Execute a function [f] with a timeout (in seconds). If [f] throws
     an exception it will be passed as [`io_exn e], if the functions
     timeouts the error will be [`timeout time]. *)
+
+(** Create a directory (default permissions: [0o700]). *)
+val mkdir :
+  ?perm:int ->
+  string ->
+  (unit,
+   [> `system of
+       [> `mkdir of string ] *
+         [> `already_exists
+         | `exn of exn
+         | `wrong_access_rights of int ] ]) t
+
+    
