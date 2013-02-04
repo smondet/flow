@@ -40,4 +40,9 @@ val mkdir :
          | `exn of exn
          | `wrong_access_rights of int ] ]) t
 
-    
+(** Create a directory and its potential parents (i.e. like [mkdir -p]).  *)
+val mkdir_p : ?perm:int -> string ->
+  (unit,
+   [> `system of
+       [> `mkdir of string ] *
+         [> `exn of exn | `wrong_access_rights of int ] ]) t

@@ -62,4 +62,32 @@ let mkdir ?(perm=0o700) dirname =
       error (`system (`mkdir dirname, `exn e))
     end
       
+let mkdir_even_if_exists ?(perm=0o700) dirname =
+  Lwt.catch
+    Lwt.(fun () -> Lwt_unix.mkdir dirname perm >>= fun () -> return (Ok ()))
+    begin function
+    | Unix.Unix_error (Unix.EACCES, cmd, arg)  ->
+      error (`system (`mkdir dirname, `wrong_access_rights perm))
+    | Unix.Unix_error (Unix.EEXIST, cmd, arg)  -> return ()
+    | e -> error (`system (`mkdir dirname, `exn e))
+    end
+
+let mkdir_p ?perm dirname =
+  (* Code inspired by Core.Std.Unix *)
+  let init, dirs =
+    match Filename.parts dirname with
+    | [] -> failwithf "Sys.mkdir_p: BUG! Filename.parts %s -> []" dirname ()
+    | init :: dirs -> (init, dirs)
+  in
+  mkdir_even_if_exists ?perm init
+  >>= fun () ->
+  List.fold dirs ~init:(return init) ~f:(fun m part ->
+    m >>= fun previous ->
+    let dir = Filename.concat previous part in
+    mkdir_even_if_exists ?perm dir
+    >>= fun () ->
+    return dir)
+  >>= fun _ ->
+  return ()
+      
 
