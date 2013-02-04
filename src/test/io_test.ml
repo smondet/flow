@@ -25,7 +25,7 @@ let basic_file_to_file () =
   >>= fun content ->
   say " THE FILE:\n%s\n" content;
   return ()
-            
+
 let basic_stream () =
   let rot13 = object
     val mutable q = (Fqueue.empty: string Fqueue.t)
@@ -54,18 +54,30 @@ let basic_stream () =
   while_sequential l2 (fun s -> say "rot13ed: %s" s; return ())
   >>= fun _ ->
   return ()
-      
+
+let copy () =
+  let tmp = Filename.temp_file "io_test_copy" ".bin" in
+  IO.write_file tmp ~content:"foo!"
+  >>= fun () ->
+  IO.with_in_channel (`file tmp) ~buffer_size:42 ~f:(fun i ->
+    wrap_io Lwt_io.read i
+    >>= fun content ->
+    IO.with_out_channel (`stdout) (fun o ->
+      ksprintf (IO.output o) "Content of %s is %S\n" tmp content))
 
 let main () =
   basic_file_to_file ()
   >>= fun () ->
   basic_stream ()
-    
+  >>= fun () ->
+  copy ()
+
 let () =
   let module E = struct
     type t = [
     | `io_exn of exn
     | `read_file_error of string * exn
+    | `write_file_error of string * exn
     | `transform of
         [ `io_exn of exn
         | `stopped_before_end_of_stream
@@ -76,4 +88,4 @@ let () =
   | Ok () -> ()
   | Error e ->
     eprintf "End with Error:\n%s\n%!" (E.sexp_of_t e |! Sexp.to_string_hum)
-              
+
