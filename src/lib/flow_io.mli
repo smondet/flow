@@ -29,6 +29,8 @@ val with_out_channel:
   f:(Lwt_io.output_channel -> ('a, [> `io_exn of exn] as 'err) t) ->
   ('a, 'err) t
 
+(** Safely call [Lwt_io.fprint]. *)
+val output: Lwt_io.output_channel -> string -> (unit, [> `io_exn of exn]) t
     
 (** {3 Biocaml/Crytokit-style transforms} *)
 

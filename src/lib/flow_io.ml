@@ -67,6 +67,8 @@ let with_out_channel out ?buffer_size ~f =
     end
   end
 
+let output out s =
+  wrap_io (Lwt_io.fprint out) s
     
 (******************************************************************************)
 (* Biocaml/Crytokit-style transforms *)
