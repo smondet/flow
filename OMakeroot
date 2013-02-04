@@ -70,5 +70,5 @@ doc: doc_library
     OCAMLCFLAGS += flow.cma
     OCAMLOPTFLAGS += flow.cmxa
     OCAMLPACKS[] +=  sexplib sexplib.syntax
-    .DEFAULT: $(OCamlProgram io_test, io_test)
+    .DEFAULT: $(OCamlProgram io_test, io_test) $(OCamlProgram sys_test, sys_test)
 
