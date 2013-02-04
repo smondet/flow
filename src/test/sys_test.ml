@@ -51,17 +51,11 @@ let test_file_info () =
   in
   check ((=) `directory) "/" >>= fun () ->
   check (function `file _ -> true | _ -> false) "/etc/passwd" >>= fun () ->
-  (*
-
-WARNING: test disabled while investigating issue with Lwt_unix.readlink:
-    http://ocsigen.org/trac/ticket/329
-    
   ksprintf (check ((=) (`symlink "/etc/passwd"))) "%s/symlink_to_file" tmp
   >>= fun () ->
   ksprintf (check ((=) (`symlink "/tmp"))) "%s/symlink_to_dir" tmp
   >>= fun () ->
 
-  *)
   ksprintf Sys.system_command "ls -l %s " tmp
   >>= fun () ->
   say "test_file_info: OK";
