@@ -3,14 +3,6 @@
 open Core.Std
 open Flow_base
 
-(** Write a string to a file. *)
-val write_file: string -> content:string ->
-  (unit, [> `write_file_error of (string * exn)]) t
-
-(** Read a string from a file. *)
-val read_file: string -> 
-  (string, [> `read_file_error of (string * exn)]) t
-    
 
 (** Block for a given amount of seconds ([Lwt_unix.sleep]). *)
 val sleep: float -> (unit, [> `io_exn of exn ]) t    

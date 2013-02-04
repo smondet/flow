@@ -18,7 +18,18 @@ val bin_recv : Lwt_io.input_channel ->
   (string,
    [> `bin_recv of [> `exn of exn | `wrong_length of int * string ] ]) t
 
-(** {3 Access to channels } *)
+
+(** {3 Whole Files} *)    
+
+(** Write a string to a file. *)
+val write_file: string -> content:string ->
+  (unit, [> `write_file_error of (string * exn)]) t
+
+(** Read a string from a file. *)
+val read_file: string -> 
+  (string, [> `read_file_error of (string * exn)]) t
+
+(** {3 Access To Channels } *)
 
 (** Run a function [f] on an output channel, if the channel comes from
     a [`file f], it will be closed before returning (in case of success,
@@ -32,7 +43,7 @@ val with_out_channel:
 (** Safely call [Lwt_io.fprint]. *)
 val output: Lwt_io.output_channel -> string -> (unit, [> `io_exn of exn]) t
     
-(** {3 Biocaml/Crytokit-style transforms} *)
+(** {3 Biocaml/Crytokit-style Transforms} *)
 
 module Transform: sig
 

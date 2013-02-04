@@ -71,6 +71,19 @@ let output out s =
   wrap_io (Lwt_io.fprint out) s
     
 (******************************************************************************)
+(* Whole Files *)
+
+let  write_file file ~content =
+  catch_io () ~f:Lwt_io.(fun () ->
+    with_file ~mode:output file (fun i -> write i content))
+  |! bind_on_error ~f:(fun e -> error (`write_file_error (file, e)))
+
+let read_file file =
+  catch_io () ~f:Lwt_io.(fun () ->
+    with_file ~mode:input file (fun i -> read i))
+  |! bind_on_error ~f:(fun e -> error (`read_file_error (file, e)))
+
+(******************************************************************************)
 (* Biocaml/Crytokit-style transforms *)
 
 module Transform = struct

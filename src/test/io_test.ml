@@ -21,7 +21,7 @@ let basic_file_to_file () =
     ~input_buffer_size:24 "/etc/passwd"
     ~output_buffer_size:23 "/tmp/portions"
   >>= fun () ->
-  Sys.read_file "/tmp/portions"
+  IO.read_file "/tmp/portions"
   >>= fun content ->
   say " THE FILE:\n%s\n" content;
   return ()
