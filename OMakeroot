@@ -31,7 +31,7 @@ clean:
 install: install_library
 uninstall: uninstall_library
 
-LIB_MODULES[] = flow_base flow_list flow_io flow_sys flow_net flow
+LIB_MODULES[] = flow_base flow_list flow_io flow_system flow_net flow
 SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
 
 TAGS: $(SOURCES)
