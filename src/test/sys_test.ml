@@ -6,12 +6,12 @@ let say fmt =
 
 let test_mkdir () =
   let tmp = Filename.temp_dir "sys_test_mkdir" "_dir" in
-  ksprintf Sys.system_command "rm -fr %s" tmp
+  ksprintf System.system_command "rm -fr %s" tmp
   >>= fun () ->
-  Sys.mkdir ~perm:0o777 tmp
+  System.mkdir ~perm:0o777 tmp
   >>= fun () ->
   begin
-    Sys.mkdir "/please_dont_run_tests_as_root"
+    System.mkdir "/please_dont_run_tests_as_root"
     >>< begin function
     | Ok () -> say "ERROR: This should have failed!!"; return ()
     | Error (`system (`mkdir _, `wrong_access_rights _)) -> return ()
@@ -20,7 +20,7 @@ let test_mkdir () =
   end
   >>= fun () ->
   begin
-    Sys.mkdir tmp
+    System.mkdir tmp
     >>< begin function
     | Ok () -> say "ERROR: This should have failed!!"; return ()
     | Error (`system (`mkdir _, `already_exists)) -> return ()
@@ -29,21 +29,21 @@ let test_mkdir () =
   end
   >>= fun () ->
   let path = Filename.concat tmp "some/very/long/path" in
-  Sys.mkdir_p path
+  System.mkdir_p path
   >>= fun () ->
-  ksprintf Sys.system_command "find %s -type d" tmp
+  ksprintf System.system_command "find %s -type d" tmp
   >>= fun () ->
   say "test_mkdir: OK";
   return ()
 
 let test_file_info () =
   let tmp = Filename.temp_dir "sys_test_file_info" "_dir" in
-  ksprintf Sys.system_command "cd %s && ln -s /tmp symlink_to_dir" tmp
+  ksprintf System.system_command "cd %s && ln -s /tmp symlink_to_dir" tmp
   >>= fun () ->
-  ksprintf Sys.system_command "cd %s && ln -s /etc/passwd symlink_to_file" tmp
+  ksprintf System.system_command "cd %s && ln -s /etc/passwd symlink_to_file" tmp
   >>= fun () ->
   let check ?follow_symlink matches path =
-    Sys.file_info ?follow_symlink path
+    System.file_info ?follow_symlink path
     >>= begin function
     | o when matches o -> return ()
     | e -> error (`wrong_file_info (path, e))
@@ -58,7 +58,7 @@ let test_file_info () =
   check ((=) `absent) "/sldkfjslakjfdlksj"
   >>= fun () ->
 
-  ksprintf Sys.system_command "ls -l %s " tmp
+  ksprintf System.system_command "ls -l %s " tmp
   >>= fun () ->
   say "test_file_info: OK";
   return ()
