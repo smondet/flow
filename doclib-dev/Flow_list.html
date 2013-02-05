@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Flow_io.html">
+<link rel="next" href="Flow_net.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_sys" rel="Chapter" href="Flow_sys.html"><title>The Flow Monad Library : Flow_list</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Flow_io.html" title="Flow_io">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Flow_net.html" title="Flow_net">Next</a>
+</div>
+<h1>Module <a href="type_Flow_list.html">Flow_list</a> (<a href="code_Flow_list.html">.ml</a>)</h1>
+<pre><span class="keyword">module</span> Flow_list: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_list.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>Monadic “loops” on lists.<br>
+<hr width="100%">
+<pre><span id="VALwhile_sequential"><span class="keyword">val</span> <a href="code_VALFlow_list.while_sequential.html">while_sequential</a></span> : <code class="type">'a list -> f:('a -> ('c, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -> ('c list, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Sequentially launch <code class="code">f</code> on the first argument and
+    get out of the loop at the first error.
+    The function returns the list of results if all succeed, or the
+    first error.<br>
+</div>
+<pre><span id="VALfor_sequential"><span class="keyword">val</span> <a href="code_VALFlow_list.for_sequential.html">for_sequential</a></span> : <code class="type">'a list -><br>       f:('a -> ('c, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -> ('c list * 'b list, 'd) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Sequentially launch <code class="code">f</code> on the first argument and process the
+    whole list even if there are errors.
+    The function returns the list of successes and the list of errors.<br>
+</div>
+<pre><span id="VALfor_concurrent"><span class="keyword">val</span> <a href="code_VALFlow_list.for_concurrent.html">for_concurrent</a></span> : <code class="type">'a list -><br>       f:('a -> ('c, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -> ('c list * 'b list, 'd) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Like <code class="code">for_sequential</code> but all the threads are launched concurrently.<br>
+</div>
+<pre><span id="VALfor_concurrent_with_index"><span class="keyword">val</span> <a href="code_VALFlow_list.for_concurrent_with_index.html">for_concurrent_with_index</a></span> : <code class="type">'a list -><br>       f:(int -> 'a -> ('c, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -> ('c list * 'b list, 'd) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Like <code class="code">for_concurrent</code> but with the index in the list passed to the
+    function.<br>
+</div>
+</body></html>

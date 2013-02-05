@@ -1,0 +1,275 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_sys" rel="Chapter" href="Flow_sys.html"><title>The Flow Monad Library : Flow_net</title>
+</head>
+<body>
+<code class="code"><span class="keyword">open</span>&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span><br>
+<span class="keyword">open</span>&nbsp;<span class="constructor">Flow_base</span><br>
+<span class="keyword">open</span>&nbsp;<span class="constructor">Flow_list</span><br>
+<span class="keyword">open</span>&nbsp;<span class="constructor">Flow_sys</span><br>
+<br>
+<span class="keyword">let</span>&nbsp;dbg&nbsp;fmt&nbsp;=<br>
+&nbsp;&nbsp;ksprintf&nbsp;(<span class="keyword">fun</span>&nbsp;s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;indented&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s&nbsp;|!&nbsp;<span class="constructor">String</span>.split&nbsp;~on:<span class="string">'\n'</span>&nbsp;|!&nbsp;<span class="constructor">String</span>.concat&nbsp;~sep:<span class="string">"\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_io</span>.eprintf&nbsp;<span class="string">"DEBUG:&nbsp;&nbsp;&nbsp;%s\n%!"</span>)&nbsp;indented)&nbsp;fmt<br>
+&nbsp;&nbsp;<br>
+<span class="keyword">module</span>&nbsp;<span class="constructor">Tls</span>&nbsp;=&nbsp;<span class="keyword">struct</span><br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;accept&nbsp;socket&nbsp;context&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bind_on_error<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_io&nbsp;(<span class="constructor">Lwt_ssl</span>.ssl_accept&nbsp;socket)&nbsp;context)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>tls_accept_error&nbsp;e))<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;server_socket&nbsp;~port&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">open</span>&nbsp;<span class="constructor">Lwt_unix</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;fd&nbsp;=&nbsp;socket&nbsp;<span class="constructor">PF_INET</span>&nbsp;<span class="constructor">SOCK_STREAM</span>&nbsp;6&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;bind&nbsp;fd&nbsp;(<span class="constructor">ADDR_INET</span>&nbsp;(<span class="constructor">Unix</span>.<span class="constructor">Inet_addr</span>.bind_any,&nbsp;port));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;listen&nbsp;fd&nbsp;port;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;fd<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>socket_creation_exn&nbsp;e)<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;tls_connect&nbsp;socket&nbsp;ssl_context&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_ssl</span>.ssl_connect&nbsp;socket)&nbsp;ssl_context<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;tls_shutdown&nbsp;socket&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_ssl</span>.ssl_shutdown&nbsp;socket&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="keyword">fun</span>&nbsp;&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_ssl</span>.shutdown&nbsp;socket&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">SHUTDOWN_ALL</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.return&nbsp;())&nbsp;()&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_ssl</span>.close&nbsp;socket<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">M_ugly_ssl_get_certificate</span>&nbsp;=&nbsp;<span class="keyword">struct</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;ttt&nbsp;=&nbsp;<span class="constructor">Plain</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">SSL</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ssl</span>.socket<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;lwt_ssl_socket&nbsp;=&nbsp;<span class="constructor">Lwt_unix</span>.file_descr&nbsp;*&nbsp;ttt<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;get_certificate&nbsp;sslsock&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;snd&nbsp;(<span class="constructor">Obj</span>.magic&nbsp;sslsock&nbsp;:&nbsp;lwt_ssl_socket)&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Plain</span>&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>not_an_ssl_socket)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">SSL</span>&nbsp;s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_preemptive</span>.detach&nbsp;<span class="constructor">Ssl</span>.get_certificate&nbsp;s&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;cert&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Ok</span>&nbsp;cert))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ssl</span>.<span class="constructor">Certificate_error</span>&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Error</span>&nbsp;<span class="keywordsign">`</span>ssl_certificate_error)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Error</span>&nbsp;(<span class="keywordsign">`</span>io_exn&nbsp;e))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;tls_get_certificate&nbsp;=&nbsp;<span class="constructor">M_ugly_ssl_get_certificate</span>.get_certificate<br>
+<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;server_context&nbsp;?ca_certificate&nbsp;(cert_file,&nbsp;key_file)&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">open</span>&nbsp;<span class="constructor">Ssl</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;c&nbsp;=&nbsp;create_context&nbsp;<span class="constructor">TLSv1</span>&nbsp;<span class="constructor">Server_context</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;use_certificate&nbsp;c&nbsp;cert_file&nbsp;key_file;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set_cipher_list&nbsp;c&nbsp;<span class="string">"TLSv1"</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Option</span>.iter&nbsp;ca_certificate&nbsp;(<span class="keyword">fun</span>&nbsp;ca_cert&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set_verify&nbsp;c&nbsp;[&nbsp;<span class="constructor">Verify_peer</span>;&nbsp;]&nbsp;<span class="constructor">None</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set_verify_depth&nbsp;c&nbsp;99;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;load_verify_locations&nbsp;c&nbsp;ca_cert&nbsp;<span class="string">""</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;c<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">with</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>tls_context_exn&nbsp;e)<br>
+<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;accept_loop<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?(on_error:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(unit,&nbsp;[&gt;&nbsp;])&nbsp;<span class="constructor">Flow_base</span>.t&nbsp;=<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?check_client_certificate&nbsp;?tls_context&nbsp;~port&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;server_socket&nbsp;~port&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;socket&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;handle_one&nbsp;accepted&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;tls_context&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Some</span>&nbsp;ssl_context&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;accept&nbsp;(fst&nbsp;accepted)&nbsp;ssl_context<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">None</span>&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;(<span class="constructor">Lwt_ssl</span>.plain&nbsp;(fst&nbsp;accepted))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;ssl_accepted&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;check_client_certificate&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Some</span>&nbsp;ccc&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double_bind&nbsp;(tls_get_certificate&nbsp;ssl_accepted)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~error:(<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>ssl_certificate_error&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="keywordsign">`</span>invalid_client&nbsp;<span class="keywordsign">`</span>wrong_certificate)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_an_ssl_socket&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;_&nbsp;<span class="keyword">as</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;e)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ok:(<span class="keyword">fun</span>&nbsp;cert&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ccc&nbsp;cert&nbsp;&gt;&gt;=&nbsp;<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>valid&nbsp;name&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;(<span class="keywordsign">`</span>valid_client&nbsp;(name:&nbsp;string))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>expired&nbsp;(name,&nbsp;time)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="keywordsign">`</span>invalid_client&nbsp;(<span class="keywordsign">`</span>expired&nbsp;((name:&nbsp;string),&nbsp;(time:&nbsp;<span class="constructor">Time</span>.t))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>revoked&nbsp;(name,&nbsp;time)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="keywordsign">`</span>invalid_client&nbsp;(<span class="keywordsign">`</span>revoked&nbsp;((name:&nbsp;string),&nbsp;(time:&nbsp;<span class="constructor">Time</span>.t))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_found&nbsp;name&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="keywordsign">`</span>invalid_client&nbsp;(<span class="keywordsign">`</span>not_found&nbsp;(name:&nbsp;string))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">None</span>&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;<span class="keywordsign">`</span>anonymous_client<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;client&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;ssl_accepted&nbsp;client<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;accept_loop&nbsp;c&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_unix</span>.accept_n&nbsp;socket)&nbsp;10<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(accepted_list,&nbsp;potential_exn)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_option&nbsp;potential_exn&nbsp;(<span class="keyword">fun</span>&nbsp;exn&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;on_error&nbsp;(<span class="keywordsign">`</span>accept_exn&nbsp;exn))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(_&nbsp;:&nbsp;unit&nbsp;option)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;dbg&nbsp;"Accepted&nbsp;%d&nbsp;connections&nbsp;(unix)%s"&nbsp;(List.length&nbsp;accepted_list)&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;&nbsp;&nbsp;(Option.value_map&nbsp;~default:""&nbsp;potential_exn&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~f:(fun&nbsp;e&nbsp;-&gt;&nbsp;sprintf&nbsp;",&nbsp;Exn:&nbsp;%s"&nbsp;(Exn.to_string&nbsp;e)))&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;&gt;&gt;=&nbsp;fun&nbsp;()&nbsp;-&gt;&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;accept_loop&nbsp;(c&nbsp;+&nbsp;1)&nbsp;|!&nbsp;<span class="constructor">Lwt</span>.ignore_result;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_list</span>.map_p&nbsp;handle_one&nbsp;accepted_list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;res_l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_list</span>.map_p&nbsp;(<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;(<span class="constructor">Ok</span>&nbsp;())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;on_error&nbsp;e)&nbsp;res_l<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Ok</span>&nbsp;()))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;accept_loop&nbsp;0&nbsp;|!&nbsp;<span class="constructor">Lwt</span>.ignore_result;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;()<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;client_context&nbsp;?verification_policy&nbsp;kind&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">open</span>&nbsp;<span class="constructor">Ssl</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;c&nbsp;=&nbsp;create_context&nbsp;<span class="constructor">TLSv1</span>&nbsp;<span class="constructor">Client_context</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;kind&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>anonymous&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>with_certificate&nbsp;(cert,&nbsp;key)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;use_certificate&nbsp;c&nbsp;cert&nbsp;key<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set_cipher_list&nbsp;c&nbsp;<span class="string">"TLSv1"</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Option</span>.iter&nbsp;verification_policy&nbsp;(<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>verify_server&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ssl</span>.set_verify_depth&nbsp;c&nbsp;99;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set_verify&nbsp;c&nbsp;[<span class="constructor">Verify_peer</span>]&nbsp;(<span class="constructor">Some</span>&nbsp;client_verify_callback);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>allow_self_signed&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;c<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">with</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>tls_context_exn&nbsp;e)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+<br>
+<br>
+<span class="keyword">end</span><br>
+<br>
+<span class="keyword">let</span>&nbsp;init_tls&nbsp;=&nbsp;<span class="constructor">Ssl</span>.init&nbsp;~thread_safe:<span class="keyword">true</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<span class="keyword">type</span>&nbsp;connection&nbsp;=&nbsp;{<br>
+&nbsp;&nbsp;inchan:&nbsp;<span class="constructor">Lwt_io</span>.input_channel;<br>
+&nbsp;&nbsp;outchan:&nbsp;<span class="constructor">Lwt_io</span>.output_channel;<br>
+&nbsp;&nbsp;tls_socket:&nbsp;<span class="constructor">Lwt_ssl</span>.socket;<br>
+}<br>
+<span class="keyword">let</span>&nbsp;connection&nbsp;inchan&nbsp;outchan&nbsp;tls_socket&nbsp;=<br>
+&nbsp;&nbsp;{inchan;&nbsp;outchan;&nbsp;tls_socket}<br>
+<br>
+<span class="keyword">let</span>&nbsp;in_channel&nbsp;t&nbsp;=&nbsp;t.inchan<br>
+<span class="keyword">let</span>&nbsp;out_channel&nbsp;t&nbsp;=&nbsp;t.outchan<br>
+<span class="keyword">let</span>&nbsp;shutdown&nbsp;{tls_socket;&nbsp;inchan;&nbsp;outchan}&nbsp;=<br>
+&nbsp;&nbsp;<span class="constructor">Tls</span>.tls_shutdown&nbsp;tls_socket&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;return&nbsp;()<br>
+<br>
+<span class="keyword">type</span>&nbsp;client_check_result&nbsp;=<br>
+[&nbsp;<span class="keywordsign">`</span>expired&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span>.<span class="constructor">Time</span>.t<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_found&nbsp;<span class="keyword">of</span>&nbsp;string<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>revoked&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span>.<span class="constructor">Time</span>.t<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>valid&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;]<br>
+<br>
+<span class="keyword">type</span>&nbsp;client_kind&nbsp;=&nbsp;<br>
+[&nbsp;<span class="keywordsign">`</span>anonymous_client<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>invalid_client&nbsp;<span class="keyword">of</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>expired&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span>.<span class="constructor">Time</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_found&nbsp;<span class="keyword">of</span>&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>revoked&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span>.<span class="constructor">Time</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>wrong_certificate&nbsp;]<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>valid_client&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;]<br>
+<br>
+<span class="keyword">let</span>&nbsp;plain_server&nbsp;?on_error&nbsp;~port&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;<span class="constructor">Tls</span>.accept_loop&nbsp;~port&nbsp;?on_error<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;socket_fd&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.in_channel_of_descr&nbsp;&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;outchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.out_channel_of_descr&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;(connection&nbsp;inchan&nbsp;outchan&nbsp;socket_fd))<br>
+<br>
+<span class="keyword">let</span>&nbsp;tls_server&nbsp;?on_error&nbsp;~port&nbsp;~cert_key&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;<span class="constructor">Tls</span>.server_context&nbsp;cert_key<br>
+&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;tls_context&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;<span class="constructor">Tls</span>.accept_loop&nbsp;~tls_context&nbsp;?on_error&nbsp;~port<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;socket_fd&nbsp;client_kind&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.in_channel_of_descr&nbsp;&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;outchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.out_channel_of_descr&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;(connection&nbsp;inchan&nbsp;outchan&nbsp;socket_fd))<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+<span class="keyword">let</span>&nbsp;authenticating_tls_server<br>
+&nbsp;&nbsp;&nbsp;&nbsp;~ca_certificate&nbsp;~check_client_certificate<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?on_error&nbsp;~port&nbsp;~cert_key&nbsp;f&nbsp;=&nbsp;<br>
+&nbsp;&nbsp;<span class="constructor">Tls</span>.server_context&nbsp;~ca_certificate&nbsp;cert_key<br>
+&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;tls_context&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;<span class="constructor">Tls</span>.accept_loop&nbsp;?on_error&nbsp;~check_client_certificate&nbsp;~tls_context&nbsp;~port<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;socket_fd&nbsp;client_kind&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.in_channel_of_descr&nbsp;&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;outchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.out_channel_of_descr&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;(connection&nbsp;inchan&nbsp;outchan&nbsp;socket_fd)&nbsp;client_kind)<br>
+<br>
+<br>
+<span class="keyword">type</span>&nbsp;connection_specification&nbsp;=&nbsp;[<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>tls&nbsp;<span class="keyword">of</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>anonymous&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>with_certificate&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;string&nbsp;]<br>
+&nbsp;&nbsp;*&nbsp;[&nbsp;<span class="keywordsign">`</span>verify_server&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>allow_self_signed&nbsp;]<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>plain<br>
+]<br>
+&nbsp;&nbsp;<br>
+<span class="keyword">let</span>&nbsp;unix_connect&nbsp;sockaddr&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;socket&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_unix</span>.(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;fd&nbsp;=&nbsp;socket&nbsp;<span class="constructor">PF_INET</span>&nbsp;<span class="constructor">SOCK_STREAM</span>&nbsp;0&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fd<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Unix</span>.<span class="constructor">Unix_error</span>&nbsp;(e,&nbsp;s,&nbsp;a)&nbsp;<span class="keyword">as</span>&nbsp;ex&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eprintf&nbsp;<span class="string">"Unix.Unix_error:&nbsp;%s&nbsp;%s&nbsp;%s\n%!"</span>&nbsp;(<span class="constructor">Unix</span>.error_message&nbsp;e)&nbsp;s&nbsp;a;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;raise&nbsp;ex<br>
+&nbsp;&nbsp;&nbsp;&nbsp;)&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_unix</span>.connect&nbsp;socket)&nbsp;sockaddr<br>
+&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;return&nbsp;socket<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<span class="keyword">let</span>&nbsp;connect&nbsp;~address&nbsp;specification&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;specification&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>plain&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;unix_connect&nbsp;address&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;unix_socket_fd&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;socket_fd&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.plain&nbsp;unix_socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.in_channel_of_descr&nbsp;&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;outchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.out_channel_of_descr&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(connection&nbsp;inchan&nbsp;outchan&nbsp;socket_fd)<br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>tls&nbsp;(connection_type,&nbsp;verification_policy)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;unix_connect&nbsp;address&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;unix_socket_fd&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Tls</span>.client_context&nbsp;~verification_policy&nbsp;connection_type&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;tls_context&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Tls</span>.tls_connect&nbsp;unix_socket_fd&nbsp;tls_context&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;socket_fd&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.in_channel_of_descr&nbsp;&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;outchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.out_channel_of_descr&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(connection&nbsp;inchan&nbsp;outchan&nbsp;socket_fd)<br>
+&nbsp;&nbsp;<span class="keyword">end</span><br>
+<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+</code></body></html>

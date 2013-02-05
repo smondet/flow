@@ -1,0 +1,43 @@
+
+body {
+    font-family: sans-serif;
+    min-width: 40em;
+    text-align: justify;
+    font-size: 92%;
+}
+h1 {           font-size: 200%; font-variant: small-caps; }
+
+h2 { font-size: 180%;  border: #6D8AD0 solid 2px; padding: 0.2em; }
+h3 {font-size: 150%;
+/*    padding-top: 0.1em;padding-bottom: 0.05em;*/
+    text-decoration: underline;
+}
+h4 {           font-size: 130%; padding-top: 0.1em;padding-bottom: 0.05em;}
+h5 {           font-size: 105%; padding-top: 0.1em;padding-bottom: 0.05em;}
+
+a {
+/*text-decoration: none; border-bottom: 1px solid #9AD5B1;*/
+    text-decoration: underline thin;
+}
+/* http://www.vision.to/add-a-small-icon-to-your-links-css-only.php */
+a:link { color: #80A5F0;}
+a:visited { color: #346AD0;}
+a:hover { color: #000011; background:#EFD7AA;}
+
+blockquote {
+    border-left: 2px solid #6D8AD0;
+    padding-left: 1em;
+}
+
+code,tt {
+    font-family: monospace;
+    /* letter-spacing: 1px; */
+    background-color: #ddeedd;
+}
+pre {
+    background-color: #ddeedd;
+    max-width: 50em;;
+    white-space: pre-wrap;
+    margin-left: 1em; border-left: 2px;
+    padding-left: 2em;
+}

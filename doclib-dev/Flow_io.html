@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Flow_base.html">
+<link rel="next" href="Flow_list.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_sys" rel="Chapter" href="Flow_sys.html"><link title="Send and Receive Binary Messages " rel="Section" href="#3_SendandReceiveBinaryMessages">
+<link title="Whole Files" rel="Section" href="#3_WholeFiles">
+<link title="Access To Channels " rel="Section" href="#3_AccessToChannels">
+<link title="Biocaml/Crytokit-style Transforms" rel="Section" href="#3_BiocamlCrytokitstyleTransforms">
+<title>The Flow Monad Library : Flow_io</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Flow_base.html" title="Flow_base">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Flow_list.html" title="Flow_list">Next</a>
+</div>
+<h1>Module <a href="type_Flow_io.html">Flow_io</a> (<a href="code_Flow_io.html">.ml</a>)</h1>
+<pre><span class="keyword">module</span> Flow_io: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_io.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>Useful I/O functions.<br>
+<hr width="100%">
+<br>
+<span id="3_SendandReceiveBinaryMessages"><h3>Send and Receive Binary Messages </h3></span><br>
+<pre><span id="VALmax_message_length"><span class="keyword">val</span> <a href="code_VALFlow_io.max_message_length.html">max_message_length</a></span> : <code class="type">int</code></pre><div class="info">
+The maximum message length (10 million bytes right now).<br>
+</div>
+<pre><span id="VALbin_send"><span class="keyword">val</span> <a href="code_VALFlow_io.bin_send.html">bin_send</a></span> : <code class="type">Lwt_io.output_channel -><br>       string -><br>       (unit, [> `bin_send of [> `exn of exn | `message_too_long of string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Write a message on an output channel (size: 32 bits big endian, string).<br>
+</div>
+<pre><span id="VALbin_recv"><span class="keyword">val</span> <a href="code_VALFlow_io.bin_recv.html">bin_recv</a></span> : <code class="type">Lwt_io.input_channel -><br>       (string, [> `bin_recv of [> `exn of exn | `wrong_length of int * string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Read a message sent by <code class="code">bin_send</code>.<br>
+</div>
+<br>
+<span id="3_WholeFiles"><h3>Whole Files</h3></span><br>
+<pre><span id="VALwrite_file"><span class="keyword">val</span> <a href="code_VALFlow_io.write_file.html">write_file</a></span> : <code class="type">string -><br>       content:string -> (unit, [> `write_file_error of string * exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Write a string to a file.<br>
+</div>
+<pre><span id="VALread_file"><span class="keyword">val</span> <a href="code_VALFlow_io.read_file.html">read_file</a></span> : <code class="type">string -> (string, [> `read_file_error of string * exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Read a string from a file.<br>
+</div>
+<br>
+<span id="3_AccessToChannels"><h3>Access To Channels </h3></span><br>
+<pre><span id="VALwith_out_channel"><span class="keyword">val</span> <a href="code_VALFlow_io.with_out_channel.html">with_out_channel</a></span> : <code class="type">[ `channel of Lwt_io.output_channel | `file of string | `stdout | `strerr ] -><br>       ?buffer_size:int -><br>       f:(Lwt_io.output_channel -> ('a, [> `io_exn of exn ] as 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ('a, 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Run a function <code class="code">f</code> on an output channel, if the channel comes from
+    a <code class="code"><span class="keywordsign">`</span>file f</code>, it will be closed before returning (in case of success,
+    or error, but not for exceptions).<br>
+</div>
+<pre><span id="VALwrite"><span class="keyword">val</span> <a href="code_VALFlow_io.write.html">write</a></span> : <code class="type">Lwt_io.output_channel -> string -> (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Safely call <code class="code"><span class="constructor">Lwt_io</span>.fprint</code>.<br>
+</div>
+<pre><span id="VALflush"><span class="keyword">val</span> <a href="code_VALFlow_io.flush.html">flush</a></span> : <code class="type">Lwt_io.output_channel -> (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Flush an output channel.<br>
+</div>
+<pre><span id="VALwith_in_channel"><span class="keyword">val</span> <a href="code_VALFlow_io.with_in_channel.html">with_in_channel</a></span> : <code class="type">[ `channel of Lwt_io.input_channel | `file of string | `stdin ] -><br>       ?buffer_size:int -><br>       f:(Lwt_io.input_channel -> ('a, [> `io_exn of exn ] as 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ('a, 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Run a function <code class="code">f</code> on an input channel, if the channel comes from
+    a <code class="code"><span class="keywordsign">`</span>file f</code>, it will be closed before returning (in case of success,
+    or error, but not for exceptions).<br>
+</div>
+<pre><span id="VALread"><span class="keyword">val</span> <a href="code_VALFlow_io.read.html">read</a></span> : <code class="type">?count:int -><br>       Lwt_io.input_channel -> (string, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Read <code class="code">count</code> bytes from an input-channel (default: “as much as possible”,
+    c.f. <a href="http://ocsigen.org/lwt/api/Lwt_io#VALread">Lwt_io.read</a>).<br>
+</div>
+<br>
+<span id="3_BiocamlCrytokitstyleTransforms"><h3>Biocaml/Crytokit-style Transforms</h3></span><br>
+<pre><span class="keyword">module</span> <a href="Flow_io.Transform.html">Transform</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_io.Transform.html">..</a> <code class="code"><span class="keyword">end</span></code></pre></body></html>

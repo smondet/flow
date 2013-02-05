@@ -1,0 +1,101 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" href="./style.css" type="text/css" />
+</head>
+<body>
+<h1 id="the-flow-monad">The Flow Monad</h1>
+<p>Exceptionless “systems” library on top of Core and Lwt.</p>
+<h1 id="build">Build:</h1>
+<p>Just run: <code>omake &amp;&amp; omake install</code> (you can control the destination with the standard 'OCAMLFIND_DESTDIR' variable).</p>
+<h1 id="quick-example">Quick Example:</h1>
+<p>The idea is to get the type-checker tell you everything that may go wrong, and also to force you to treat all cases:</p>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="ot">#use &quot;topfind&quot;</span>
+<span class="ot">#thread</span>
+<span class="ot">#require &quot;flow&quot;</span>
+<span class="ot">open</span> Core<span class="kw">.</span>Std
+
+<span class="kw">let</span> read_some_file_with_timeout () =
+  Flow<span class="kw">.</span>Sys<span class="kw">.</span>with_timeout 4.2 ~f:(<span class="kw">fun</span> () -&gt;
+    Flow<span class="kw">.</span>IO<span class="kw">.</span>read_file <span class="st">&quot;/etc/passwd&quot;</span>)</code></pre>
+<p>The possible errors of <code>with_timeout</code> and <code>read_file</code> will be merged and automatically documented:</p>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">val</span> read_some_file_with_timeout :
+  <span class="dt">unit</span> -&gt;
+  (<span class="dt">string</span>,
+   [&gt; <span class="dt">`io_exn</span> <span class="kw">of</span> <span class="dt">exn</span> | <span class="dt">`read_file_error</span> <span class="kw">of</span> <span class="dt">string</span> * <span class="dt">exn</span> | <span class="dt">`timeout</span> <span class="kw">of</span> float ])
+  Flow_base<span class="kw">.</span>t = &lt;fun&gt;</code></pre>
+<p>You cannot forget one case:</p>
+<pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> print_what_happens =
+  <span class="kw">let</span> <span class="ot">open</span> Flow <span class="kw">in</span>
+  read_some_file_with_timeout ()
+  &gt;&gt;&lt; <span class="kw">begin</span> <span class="kw">function</span>
+  | <span class="dt">Ok</span> () -&gt; say <span class="st">&quot;It&#39;s OK!</span><span class="ch">\n</span><span class="st">&quot;</span>
+  | <span class="dt">Error</span> (<span class="dt">`io_exn</span> e) -&gt;
+    say <span class="st">&quot;I/O Error: %s</span><span class="ch">\n</span><span class="st">&quot;</span> (Exn<span class="kw">.</span>to_string e)
+  | <span class="dt">Error</span> (<span class="dt">`timeout</span> f) -&gt;
+    say <span class="st">&quot;It timeout-ed (%f) !</span><span class="ch">\n</span><span class="st">&quot;</span> f
+  <span class="kw">end</span></code></pre>
+<p>OCaml says:</p>
+<pre><code>Error: This pattern matches values of type
+         (unit, [&lt; `io_exn of &#39;a | `timeout of &#39;b ]) Core.Result.t
+       but a pattern was expected which matches values of type
+         (string,
+          [&gt; `io_exn of exn
+           | `read_file_error of string * exn
+           | `timeout of float ])
+         Core.Result.t</code></pre>
+<h1 id="links">Links</h1>
+<p>Documentation:</p>
+<ul>
+<li><a href="./doclib-dev/index.html">Development version</a></li>
+</ul>
+<p>Source: <a href="https://github.com/smondet/flow">on Github</a></p>
+<p>Authors:</p>
+<ul>
+<li><a href="http://seb.mondet.org">Sebastien Mondet</a></li>
+<li><a href="http://ashishagarwal.org/">Ashish Agarwal</a></li>
+</ul>
+<h1 id="license">License</h1>
+<p>This is the <a href="http://en.wikipedia.org/wiki/ISC_license">ISC License</a>:</p>
+<pre><code>Copyright (c) 2012, 2013,
+    Sebastien Mondet &lt;seb@mondet.org&gt;,
+    Ashish Agarwal &lt;agarwal1975@gmail.com&gt;.
+
+Permission to use, copy, modify, and/or distribute this software for
+any purpose with or without fee is hereby granted, provided that the
+above copyright notice and this permission notice appear in all
+copies.
+
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot; AND THE AUTHOR DISCLAIMS ALL
+WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.</code></pre>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Flow.html">
+<link rel="next" href="Flow_io.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_sys" rel="Chapter" href="Flow_sys.html"><title>The Flow Monad Library : Flow_base</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Flow.html" title="Flow">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Flow_io.html" title="Flow_io">Next</a>
+</div>
+<h1>Module <a href="type_Flow_base.html">Flow_base</a> (<a href="code_Flow_base.html">.ml</a>)</h1>
+<pre><span class="keyword">module</span> Flow_base: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_base.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>The Flow-monad core module.<br>
+<hr width="100%">
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type">('good, 'bad)</code> t</span> = <code class="type">('good, 'bad) Core.Std.Result.t Lwt.t</code> </pre>
+<div class="info">
+The flow-monad “embeds” <i>Core</i>'s <code class="code"><span class="constructor">Result</span></code>s into <code class="code"><span class="constructor">Lwt</span></code> threads.<br>
+</div>
+
+<pre><span id="VALbind"><span class="keyword">val</span> bind</span> : <code class="type">('a, 'd) <a href="Flow_base.html#TYPEt">t</a> -> ('a -> ('b, 'd) <a href="Flow_base.html#TYPEt">t</a>) -> ('b, 'd) <a href="Flow_base.html#TYPEt">t</a></code></pre><pre><span id="VALreturn"><span class="keyword">val</span> return</span> : <code class="type">'a -> ('a, 'b) <a href="Flow_base.html#TYPEt">t</a></code></pre><pre><span id="VAL(>>=)"><span class="keyword">val</span> (&gt;&gt;=)</span> : <code class="type">('a, 'd) <a href="Flow_base.html#TYPEt">t</a> -> ('a -> ('b, 'd) <a href="Flow_base.html#TYPEt">t</a>) -> ('b, 'd) <a href="Flow_base.html#TYPEt">t</a></code></pre><pre><span id="VAL(>>|)"><span class="keyword">val</span> (&gt;&gt;|)</span> : <code class="type">('a, 'd) <a href="Flow_base.html#TYPEt">t</a> -> ('a -> 'b) -> ('b, 'd) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+The monadic <code class="code">map</code> function.<br>
+</div>
+<pre><span id="VAL(>><)"><span class="keyword">val</span> <a href="code_VALFlow_base.(_gt__gt__lt_).html">(&gt;&gt;&lt;)</a></span> : <code class="type">('a, 'b) <a href="Flow_base.html#TYPEt">t</a> -><br>       (('a, 'b) Core.Std.Result.t -> ('c, 'd) <a href="Flow_base.html#TYPEt">t</a>) -> ('c, 'd) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+Bind on the I/O part, i.e. get a <code class="code"><span class="constructor">Result</span>.t</code> and continue with a
+    <code class="code"><span class="constructor">Flow</span>.t</code>. Example:
+    <code class="code">return () &gt;&gt;&lt; (<span class="keyword">function</span> <span class="constructor">Ok</span> () <span class="keywordsign">-&gt;</span> return () <span class="keywordsign">|</span> <span class="constructor">Error</span> _ <span class="keywordsign">-&gt;</span> return ())</code><br>
+</div>
+<pre><span id="VALerror"><span class="keyword">val</span> <a href="code_VALFlow_base.error.html">error</a></span> : <code class="type">'a -> ('any, 'a) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+Use anything as an Error thread.<br>
+</div>
+<pre><span id="VALbind_on_error"><span class="keyword">val</span> <a href="code_VALFlow_base.bind_on_error.html">bind_on_error</a></span> : <code class="type">('a, 'err) <a href="Flow_base.html#TYPEt">t</a> -><br>       f:('err -> ('a, 'b) <a href="Flow_base.html#TYPEt">t</a>) -> ('a, 'b) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+Do something on errors (generally in order to augment them).<br>
+</div>
+<pre><span id="VALdouble_bind"><span class="keyword">val</span> <a href="code_VALFlow_base.double_bind.html">double_bind</a></span> : <code class="type">('a, 'b) <a href="Flow_base.html#TYPEt">t</a> -><br>       ok:('a -> ('c, 'd) <a href="Flow_base.html#TYPEt">t</a>) -><br>       error:('b -> ('c, 'd) <a href="Flow_base.html#TYPEt">t</a>) -> ('c, 'd) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+Do something on both sides.<br>
+</div>
+<pre><span id="VALcatch_io"><span class="keyword">val</span> <a href="code_VALFlow_base.catch_io.html">catch_io</a></span> : <code class="type">f:('b -> 'a Lwt.t) -> 'b -> ('a, exn) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">catch_io f x</code> uses <code class="code"><span class="constructor">Lwt</span>.catch</code> to catch all the
+    lwt-exceptions in the result.<br>
+</div>
+<pre><span id="VALwrap_io"><span class="keyword">val</span> <a href="code_VALFlow_base.wrap_io.html">wrap_io</a></span> : <code class="type">?on_exn:(exn -> ([> `io_exn of exn ] as 'c)) -><br>       f:('a -> 'b Lwt.t) -> 'a -> ('b, 'c) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+Put any Lwt.t in a flow-monad like <code class="code">catch_io</code> but put the exception
+    in a polymorphic variant (the default being <code class="code"><span class="keywordsign">`</span>io_exn e</code>).<br>
+</div>
+<pre><span id="VALwrap"><span class="keyword">val</span> <a href="code_VALFlow_base.wrap.html">wrap</a></span> : <code class="type">on_exn:(exn -> 'c) -> f:('a -> 'b) -> 'a -> ('b, 'c) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+Put any non-I/O function
+    in a flow-monad and do “something” on the error.<br>
+</div>
+<pre><span id="VALmap_option"><span class="keyword">val</span> <a href="code_VALFlow_base.map_option.html">map_option</a></span> : <code class="type">'a option -> f:('a -> ('c, 'b) <a href="Flow_base.html#TYPEt">t</a>) -> ('c option, 'b) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">map_option</code> allows to put options <i>inside</i> the t.<br>
+</div>
+<pre><span id="VALof_result"><span class="keyword">val</span> <a href="code_VALFlow_base.of_result.html">of_result</a></span> : <code class="type">('a, 'b) Core.Std.Result.t -> ('a, 'b) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">of_result</code> adds threading to a <code class="code"><span class="constructor">Result</span>.t</code>.<br>
+</div>
+</body></html>

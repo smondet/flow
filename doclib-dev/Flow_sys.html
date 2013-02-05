@@ -1,0 +1,54 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Flow_net.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_sys" rel="Chapter" href="Flow_sys.html"><title>The Flow Monad Library : Flow_sys</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Flow_net.html" title="Flow_net">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Flow_sys.html">Flow_sys</a> (<a href="code_Flow_sys.html">.ml</a>)</h1>
+<pre><span class="keyword">module</span> Flow_sys: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_sys.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>Basic system access functions.<br>
+<hr width="100%">
+<pre><span id="VALsleep"><span class="keyword">val</span> <a href="code_VALFlow_sys.sleep.html">sleep</a></span> : <code class="type">float -> (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Block for a given amount of seconds (<code class="code"><span class="constructor">Lwt_unix</span>.sleep</code>).<br>
+</div>
+<pre><span id="VALsystem_command"><span class="keyword">val</span> <a href="code_VALFlow_sys.system_command.html">system_command</a></span> : <code class="type">string -><br>       (unit,<br>        [> `system_command_error of<br>             string *<br>             [> `exited of int | `exn of exn | `signaled of int | `stopped of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Make <code class="code">/bin/sh</code> execute a command.<br>
+</div>
+<pre><span id="VALget_system_command_output"><span class="keyword">val</span> <a href="code_VALFlow_sys.get_system_command_output.html">get_system_command_output</a></span> : <code class="type">string -><br>       (string * string,<br>        [> `system_command_error of<br>             string *<br>             [> `exited of int | `exn of exn | `signaled of int | `stopped of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Execute a shell command and return its <code class="code">stdout, stderr</code>.<br>
+</div>
+<pre><span id="VALwith_timeout"><span class="keyword">val</span> <a href="code_VALFlow_sys.with_timeout.html">with_timeout</a></span> : <code class="type">float -><br>       f:(unit -> ('a, [> `io_exn of exn | `timeout of float ] as 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ('a, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Execute a function <code class="code">f</code> with a timeout (in seconds). If <code class="code">f</code> throws
+    an exception it will be passed as <code class="code"><span class="keywordsign">`</span>io_exn e</code>, if the functions
+    timeouts the error will be <code class="code"><span class="keywordsign">`</span>timeout time</code>.<br>
+</div>
+<pre><span id="VALmkdir"><span class="keyword">val</span> <a href="code_VALFlow_sys.mkdir.html">mkdir</a></span> : <code class="type">?perm:int -><br>       string -><br>       (unit,<br>        [> `system of<br>             [> `mkdir of string ] *<br>             [> `already_exists | `exn of exn | `wrong_access_rights of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Create a directory (default permissions: <code class="code">0o700</code>).<br>
+</div>
+<pre><span id="VALmkdir_p"><span class="keyword">val</span> <a href="code_VALFlow_sys.mkdir_p.html">mkdir_p</a></span> : <code class="type">?perm:int -><br>       string -><br>       (unit,<br>        [> `system of<br>             [> `mkdir of string ] * [> `exn of exn | `wrong_access_rights of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Create a directory and its potential parents (i.e. like <code class="code">mkdir -p</code>).<br>
+</div>
+<pre><span id="VALfile_info"><span class="keyword">val</span> <a href="code_VALFlow_sys.file_info.html">file_info</a></span> : <code class="type">?follow_symlink:bool -><br>       string -><br>       ([ `absent<br>        | `block_device<br>        | `character_device<br>        | `directory<br>        | `fifo<br>        | `file of int<br>        | `socket<br>        | `symlink of string ],<br>        [> `system of [> `file_info of string ] * [> `exn of exn ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Get information about a path (whether it exists, its size, or
+    sym-link destination). If <code class="code">follow_symlink</code> is <code class="code"><span class="keyword">false</span></code>
+    (default) use <code class="code">lstat</code> (so the result can be <code class="code"><span class="keywordsign">`</span>symlink _</code>), if <code class="code"><span class="keyword">true</span></code>
+    call <code class="code">stat</code> (information about the target).<br>
+</div>
+</body></html>

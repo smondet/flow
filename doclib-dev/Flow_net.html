@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Flow_list.html">
+<link rel="next" href="Flow_sys.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_sys" rel="Chapter" href="Flow_sys.html"><link title="TLS Initialization" rel="Section" href="#3_TLSInitialization">
+<link title="Generic Connection Handle" rel="Section" href="#3_GenericConnectionHandle">
+<link title="Client Connection" rel="Section" href="#3_ClientConnection">
+<link title="Server Establishment" rel="Section" href="#3_ServerEstablishment">
+<title>The Flow Monad Library : Flow_net</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Flow_list.html" title="Flow_list">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Flow_sys.html" title="Flow_sys">Next</a>
+</div>
+<h1>Module <a href="type_Flow_net.html">Flow_net</a> (<a href="code_Flow_net.html">.ml</a>)</h1>
+<pre><span class="keyword">module</span> Flow_net: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_net.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>High-level TCP + TLS connection handling.<br>
+<hr width="100%">
+<br>
+<span id="3_TLSInitialization"><h3>TLS Initialization</h3></span><br>
+<pre><span id="VALinit_tls"><span class="keyword">val</span> <a href="code_VALFlow_net.init_tls.html">init_tls</a></span> : <code class="type">unit -> unit</code></pre><div class="info">
+Initialize the SSL library.<br>
+</div>
+<br>
+<span id="3_GenericConnectionHandle"><h3>Generic Connection Handle</h3></span><br>
+<pre><span id="TYPEconnection"><span class="keyword">type</span> <code class="type"></code>connection</span> </pre>
+<div class="info">
+A connection is full duplex and can be shut down.<br>
+</div>
+
+<pre><span id="VALin_channel"><span class="keyword">val</span> <a href="code_VALFlow_net.in_channel.html">in_channel</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> Lwt_io.input_channel</code></pre><pre><span id="VALout_channel"><span class="keyword">val</span> <a href="code_VALFlow_net.out_channel.html">out_channel</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> Lwt_io.output_channel</code></pre><pre><span id="VALshutdown"><span class="keyword">val</span> <a href="code_VALFlow_net.shutdown.html">shutdown</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Note that <code class="code">shutdown connection</code> closes the channels.<br>
+</div>
+<br>
+<span id="3_ClientConnection"><h3>Client Connection</h3></span><br>
+<pre><span id="TYPEconnection_specification"><span class="keyword">type</span> <code class="type"></code>connection_specification</span> = <code class="type">[ `plain<br>       | `tls of<br>           [ `anonymous | `with_certificate of string * string ] *<br>           [ `allow_self_signed | `verify_server ] ]</code> </pre>
+<div class="info">
+Specification of the kind of connection (for the function <code class="code">connect</code>).<br>
+</div>
+
+<pre><span id="VALconnect"><span class="keyword">val</span> <a href="code_VALFlow_net.connect.html">connect</a></span> : <code class="type">address:Lwt_unix.sockaddr -><br>       <a href="Flow_net.html#TYPEconnection_specification">connection_specification</a> -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a>, [> `io_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Connect to the server at <code class="code">address</code>.<br>
+</div>
+<br>
+<span id="3_ServerEstablishment"><h3>Server Establishment</h3></span><br>
+<pre><span id="VALplain_server"><span class="keyword">val</span> <a href="code_VALFlow_net.plain_server.html">plain_server</a></span> : <code class="type">?on_error:(([> `accept_exn of Core.Std.Exn.t<br>                    | `io_exn of exn<br>                    | `not_an_ssl_socket<br>                    | `tls_accept_error of exn ]<br>                   as 'errors) -><br>                  (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, 'errors) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `io_exn of exn | `socket_creation_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Start a “plain” TCP server on port <code class="code">port</code>. This function returns
+    immediately, the “accept-loop” runs in <i>Lwt</i> threads.
+<p>
+
+    The function <code class="code">on_error</code> is an error handler, it will be called on
+    "acceptation" errors (c.f.
+    <a href="http://ocsigen.org/lwt/api/Lwt_unix#VALaccept_n">Lwt_unix.accept_n</a>)
+    <b>and</b> on the remaining errors of the handler (but errors of the
+    <code class="code">on_error</code> function itself will be ignored).
+<p>
+
+    Example: <code class="code">&nbsp;&nbsp;&nbsp;&nbsp;plain_server&nbsp;~port:4242<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~on_error:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;logf&nbsp;<span class="string">"Error:&nbsp;%s"</span>&nbsp;(string_of_error&nbsp;e))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;connection&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base_io</span>.bin_send&nbsp;connection<span class="keywordsign">#</span>out_channel&nbsp;<span class="string">"Hello&nbsp;!!"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connection<span class="keywordsign">#</span>shutdown)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;</code><br>
+</div>
+<pre><span id="VALtls_server"><span class="keyword">val</span> <a href="code_VALFlow_net.tls_server.html">tls_server</a></span> : <code class="type">?on_error:(([> `accept_exn of Core.Std.Exn.t<br>                    | `io_exn of exn<br>                    | `not_an_ssl_socket<br>                    | `tls_accept_error of exn ]<br>                   as 'a) -><br>                  (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       cert_key:string * string -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, 'a) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `socket_creation_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Like <code class="code">plain_server</code> but with a TLS layer, the server will be
+    authenticated with <code class="code">~cert_key:(<span class="string">"cert.crt"</span>, <span class="string">"k.key"</span>)</code>.<br>
+</div>
+<pre><span id="TYPEclient_check_result"><span class="keyword">type</span> <code class="type"></code>client_check_result</span> = <code class="type">[ `expired of string * Core.Std.Time.t<br>       | `not_found of string<br>       | `revoked of string * Core.Std.Time.t<br>       | `valid of string ]</code> </pre>
+<div class="info">
+The result type expected from <code class="code">check_client_certificate</code> functions.<br>
+</div>
+
+<pre><span id="TYPEclient_kind"><span class="keyword">type</span> <code class="type"></code>client_kind</span> = <code class="type">[ `anonymous_client<br>       | `invalid_client of<br>           [ `expired of string * Core.Std.Time.t<br>           | `not_found of string<br>           | `revoked of string * Core.Std.Time.t<br>           | `wrong_certificate ]<br>       | `valid_client of string ]</code> </pre>
+<div class="info">
+The different kinds of clients that a authenticating TLS server
+    handler has to treat separately.
+<p>
+
+    In the current implementation, the case <code class="code"><span class="keywordsign">`</span>anonymous_client</code> is
+    never used, clients without certificate are seen as
+    <code class="code"><span class="keywordsign">`</span>invalid_client <span class="keywordsign">`</span>wrong_certificate</code>.<br>
+</div>
+
+<pre><span id="VALauthenticating_tls_server"><span class="keyword">val</span> <a href="code_VALFlow_net.authenticating_tls_server.html">authenticating_tls_server</a></span> : <code class="type">ca_certificate:string -><br>       check_client_certificate:(Ssl.certificate -><br>                                 (<a href="Flow_net.html#TYPEclient_check_result">client_check_result</a>,<br>                                  [> `accept_exn of Core.Std.Exn.t<br>                                   | `io_exn of exn<br>                                   | `not_an_ssl_socket<br>                                   | `tls_accept_error of exn ]<br>                                  as 'a)<br>                                 <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ?on_error:('a -> (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       cert_key:string * string -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> <a href="Flow_net.html#TYPEclient_kind">client_kind</a> -> (unit, 'a) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `socket_creation_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Start an authenticating TLS server,  the <code class="code">ca_certificate</code> is used to check
+    client certificates, and the function <code class="code">check_client_certificate</code> to
+    decide about the CA-validity of the certificate once it has been validated
+    with respect to the TLS protocol.<br>
+</div>
+</body></html>
