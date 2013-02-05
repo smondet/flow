@@ -2,11 +2,11 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: clean install_library install uninstall uninstall_library tags doc_library doc
+.PHONY: clean install_library install uninstall uninstall_library tags doc_library doc web
 
 USE_OCAMLFIND = true
 
-OCAMLPACKS[] = core lwt lwt.unix lwt.ssl lwt.preemptive 
+OCAMLPACKS[] = core lwt lwt.unix lwt.ssl lwt.preemptive
 
 if $(not $(OCAMLFIND_EXISTS))
   eprintln(This project requires ocamlfind, but is was not found.)
@@ -22,7 +22,7 @@ OCAMLOPTFLAGS +=
 OCAML_LINK_FLAGS +=
 OCAML_BYTE_LINK_FLAGS +=
 OCAML_NATIVE_LINK_FLAGS +=
-OCAMLFINDFLAGS += 
+OCAMLFINDFLAGS +=
 
 
 clean:
@@ -39,6 +39,12 @@ TAGS: $(SOURCES)
 tags: TAGS
 
 doc: doc_library
+
+web: doc
+  rm -fr doclib-dev
+  cp -r _build/lib/doclib doclib-dev
+  cp src/doc/style.css .
+  pandoc -s README.md -o index.html -c ./style.css
 
 .SUBDIRS: .
   if $(not $(file-exists _build/))
@@ -58,11 +64,12 @@ doc: doc_library
       ocamlfind install $(LIB_NAME) META *.cm[iox] $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
     uninstall_library:
       ocamlfind remove $(LIB_NAME)
-    doc_library: $(LIB_NAME).cma
-      mkdir doclib
+    doclib/index.html: $(LIB_NAME).cma
+      mkdir -p doclib
       ocamlfind ocamldoc -package core,lwt,lwt.unix,lwt.ssl,lwt.preemptive \
         -charset UTF-8 -d doclib/ -t "The Flow Monad Library" -html \
         -keep-code -colorize-code *.mli *.ml -sort -I .
+    doc_library: doclib/index.html
 
   .SUBDIRS: _build/test/
     OCAMLFINDFLAGS += -syntax camlp4o
