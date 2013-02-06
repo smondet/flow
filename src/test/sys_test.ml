@@ -69,11 +69,12 @@ let test_file_info () =
   return ()
 
 let test_remove style =
-  let is_present path =
+  let is_present ?(and_matches=(fun _ -> true)) path =
     System.file_info path
     >>= begin function
     | `absent -> error (`wrong_file_info (path, `absent))
-    | any -> return ()
+    | any when and_matches any -> return ()
+    | any_other -> error (`wrong_file_info (path, any_other))
     end in
   let is_absent path =
     System.file_info path
@@ -138,9 +139,9 @@ let test_remove style =
   is_absent test_non_empty_dir >>= fun () ->
 
   let test_symlink = Filename.concat in_dir "test_symlink" in
-  wrap_io (Lwt_unix.symlink "/tmp/bouh") test_symlink
+  System.make_symlink ~target:"/tmp/bouh" ~link_path:test_symlink
   >>= fun () ->
-  is_present test_symlink >>= fun () ->
+  is_present ~and_matches:((=) (`symlink "/tmp/bouh")) test_symlink >>= fun () ->
   System.remove test_symlink >>= fun () ->
   is_absent test_symlink >>= fun () ->
   say "Removed: %s" test_symlink;
@@ -171,6 +172,7 @@ let () =
       (<:sexp_of<
           [ `system of
               [`file_info of string | `mkdir of string
+              | `make_symlink of string * string
               | `remove of string | `list_directory of string ] *
                 [ `already_exists | `exn of exn | `wrong_access_rights of int ]
           | `io_exn of exn
