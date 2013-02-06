@@ -254,6 +254,66 @@ let test_copy style_in style_out =
   say "test_copy: OK";
   return ()
 
+let test_move style_in style_out =
+  (*
+    Note: to test the `move` function in the [`must_copy] case one has to
+    launch this test from another partition than the one containing "/tmp".
+  *)
+  let out_dir =
+    match style_out with
+    | `relative -> "test_flow_system_move_target"
+    | `absolute -> "/tmp/test_flow_system_move_target" in
+  let in_dir =
+    match style_in with
+    | `relative -> "test_flow_system_move"
+    | `absolute -> "/tmp/test_flow_system_move" in
+  say "test_move %s/… → %s/…" in_dir out_dir;
+  cmdf "rm -fr %s" in_dir >>= fun () ->
+  cmdf "rm -fr %s" out_dir >>= fun () ->
+  System.mkdir_p in_dir >>= fun () ->
+  System.mkdir_p out_dir >>= fun () ->
+
+  let test_symlink = Filename.concat in_dir "test_symlink" in
+  System.make_symlink ~target:"/tmp/bouh" ~link_path:test_symlink
+  >>= fun () ->
+  System.move ~symlinks:`redo ~src:test_symlink (`into_directory out_dir)
+  >>= fun () ->
+  let expected_path = Filename.concat out_dir "test_symlink" in
+  is_present ~and_matches:((=) (`symlink "/tmp/bouh")) expected_path
+  >>= fun () ->
+  is_absent test_symlink >>= fun () ->
+
+  let subtree_path = Filename.concat in_dir "random_tree" in
+  System.mkdir_p subtree_path >>= fun () ->
+  random_tree subtree_path 20 >>= fun () ->
+  System.file_tree ~follow_symlinks:false subtree_path
+  >>= fun src_tree ->
+
+  let new_tree = Filename.concat out_dir "random_tree_moved" in
+  System.move ~symlinks:`redo ~src:subtree_path (`as_new new_tree)
+  >>= fun () ->
+  System.file_tree ~follow_symlinks:false new_tree
+  >>= fun dst_tree ->
+  is_absent subtree_path
+  >>= fun () ->
+
+  begin match src_tree, dst_tree with
+  | `node (inname, lin), `node (outname, lout)
+    when inname = "random_tree" && outname = "random_tree_moved"
+                && lin = lout ->
+    return ()
+  | _ ->
+    say "src_tree: %s" (Sexp.to_string_hum (System.sexp_of_file_tree src_tree));
+    say "dst_tree: %s" (Sexp.to_string_hum (System.sexp_of_file_tree dst_tree));
+    fail_test "src_tree <> dst_tree"
+  end
+  >>= fun () ->
+
+  System.remove in_dir >>= fun () ->
+  System.remove out_dir >>= fun () ->
+  say "test_move: OK";
+  return ()
+
 
 let main () =
   say "sys_test: GO!";
@@ -271,6 +331,10 @@ let main () =
   test_copy `absolute `absolute  >>= fun () ->
   test_copy `absolute `relative  >>= fun () ->
   test_copy `relative `absolute  >>= fun () ->
+  test_move `relative `relative  >>= fun () ->
+  test_move `absolute `absolute  >>= fun () ->
+  test_move `absolute `relative  >>= fun () ->
+  test_move `relative `absolute  >>= fun () ->
   say "sys_test: Successful End";
   return ()
 
@@ -283,6 +347,7 @@ let () =
           [ `system of
               [`file_info of string | `mkdir of string
               | `file_tree of string
+              | `move of string
               | `copy of string
               | `make_symlink of string * string
               | `remove of string | `list_directory of string ] *
