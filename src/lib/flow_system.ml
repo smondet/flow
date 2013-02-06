@@ -189,3 +189,9 @@ let remove path =
   end
 
 
+let make_symlink ~target ~link_path =
+  bind_on_error
+    (wrap_io (Lwt_unix.symlink target) link_path)
+    begin function
+    | `io_exn e -> error (`system (`make_symlink (target, link_path), `exn e))
+    end

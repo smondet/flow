@@ -76,3 +76,8 @@ val remove: string ->
    [> `system of [> `file_info of string
                  | `remove of string
                  | `list_directory of string ] * [> `exn of exn ] ]) t
+
+(** Make a symbolic link [link_path] pointing at [target]. *)
+val make_symlink: target:string -> link_path:string ->
+  (unit,
+   [> `system of [> `make_symlink of string * string] * [> `exn of exn ] ]) t
