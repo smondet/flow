@@ -81,3 +81,42 @@ val remove: string ->
 val make_symlink: target:string -> link_path:string ->
   (unit,
    [> `system of [> `make_symlink of string * string] * [> `exn of exn ] ]) t
+
+(** Specification of a “destination” for [copy] *)
+type copy_destination = [
+| `into_directory of string
+| `as_new of string
+]
+
+(** Copy files or directories (recursively).
+
+    If [ignore_strange] is true [copy] won't fail on block/character
+    devices, fifos or sockets (defaults to [false]).
+
+    The [buffer_size] (default [64_000]) is used both for reading and
+    writing files.
+
+    On can [`fail] on symbolic links, [`follow] them, or [`redo] a new
+    symlink with the same target.
+
+*)
+val copy:
+  ?ignore_strange:bool ->
+  ?symlinks:[ `fail | `follow | `redo ] ->
+  ?buffer_size:int ->
+  src:string -> copy_destination ->
+  (unit,
+   [> `system of
+       [> `copy of string
+       | `file_info of string
+       | `list_directory of string
+       | `make_symlink of string * string
+       | `mkdir of string ] *
+         [> `already_exists
+         | `exn of exn
+         | `file_not_found of string
+         | `wrong_access_rights of int
+         | `wrong_file_kind of
+             string *
+               [> `block_device | `character_device
+               | `fifo | `socket | `symlink of string ] ] ]) t

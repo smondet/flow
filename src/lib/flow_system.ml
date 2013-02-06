@@ -1,6 +1,8 @@
 open Core.Std
 open Flow_base
 
+module IO = Flow_io
+
 
 let discriminate_process_status s ret =
   begin match ret with
@@ -188,10 +190,81 @@ let remove path =
   | Error (`system e) -> error (`system e)
   end
 
-
 let make_symlink ~target ~link_path =
   bind_on_error
     (wrap_io (Lwt_unix.symlink target) link_path)
     begin function
     | `io_exn e -> error (`system (`make_symlink (target, link_path), `exn e))
+    end
+
+type copy_destination = [
+| `into_directory of string
+| `as_new of string
+]
+let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src dst =
+  let path_of_destination ~src ~dst =
+    match dst with
+    | `into_directory p -> Filename.(concat p (basename src))
+    | `as_new p -> p
+  in
+  let rec copy_aux ~src ~dst =
+    file_info src
+    >>= begin function
+    | `absent -> error (`file_not_found src)
+    | `block_device
+    | `character_device
+    | `fifo
+    | `socket as k ->
+      if ignore_strange then return () else error (`wrong_file_kind (src, k))
+    | `symlink content ->
+      begin match symlinks with
+      | `fail -> error (`wrong_file_kind (src, `symlink content))
+      | `follow -> copy_aux ~src:content ~dst
+      | `redo ->
+        let link_path = path_of_destination ~src ~dst in
+        eprintf "make_symlink %s %s\n" content link_path;
+        make_symlink ~target:content ~link_path
+      end
+    | `file _->
+      let output_path = path_of_destination ~src ~dst in
+      IO.with_out_channel ~buffer_size (`file output_path) ~f:(fun outchan ->
+        IO.with_in_channel ~buffer_size (`file src) ~f:(fun inchan ->
+          let rec loop () =
+            IO.read ~count:buffer_size inchan
+            >>= begin function
+            | "" -> return ()
+            | buf ->
+              IO.write outchan buf >>= fun () ->
+              loop ()
+            end
+          in
+          loop ()))
+    | `directory ->
+      let new_dir = path_of_destination ~src ~dst in
+      mkdir new_dir
+      >>= fun () ->
+      let next_dir = list_directory src in
+      let rec loop () =
+        next_dir ()
+        >>= begin function
+        | Some ".."
+        | Some "." -> loop ()
+        | Some name ->
+          copy_aux
+            ~src:(Filename.concat src name)
+            ~dst:(`into_directory new_dir)
+          >>= fun () ->
+          loop ()
+        | None -> return ()
+        end
+      in
+      loop ()
+    end
+  in
+  bind_on_error (copy_aux ~src ~dst)
+    begin function
+    | `io_exn e -> error (`system (`copy src, `exn e))
+    | `file_not_found _
+    | `wrong_file_kind _ as e -> error (`system (`copy src, e))
+    | `system e -> error (`system e)
     end
