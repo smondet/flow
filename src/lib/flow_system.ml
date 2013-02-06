@@ -213,12 +213,12 @@ type copy_destination = [
 | `into_directory of string
 | `as_new of string
 ]
+let path_of_destination ~src ~dst =
+  match dst with
+  | `into_directory p -> Filename.(concat p (basename src))
+  | `as_new p -> p
+
 let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src dst =
-  let path_of_destination ~src ~dst =
-    match dst with
-    | `into_directory p -> Filename.(concat p (basename src))
-    | `as_new p -> p
-  in
   let rec copy_aux ~src ~dst =
     file_info src
     >>= begin function
@@ -280,6 +280,25 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
     | `wrong_file_kind _ as e -> error (`system (`copy src, e))
     | `system e -> error (`system e)
     end
+
+let move_in_same_device ~src dst =
+  let real_dest = path_of_destination ~src ~dst in
+  Lwt.catch
+    Lwt.(fun () -> Lwt_unix.rename src real_dest >>= fun () -> return (Ok `moved))
+    begin function
+    | Unix.Unix_error (Unix.EXDEV, cmd, arg)  -> return `must_copy
+    | e -> error (`system (`move src, `exn e))
+    end
+
+let move ?ignore_strange ?symlinks ?buffer_size ~src dst =
+  move_in_same_device ~src dst
+  >>= begin function
+  | `moved -> return ()
+  | `must_copy ->
+    copy ~src ?buffer_size ?ignore_strange ?symlinks dst
+    >>= fun () ->
+    remove src
+  end
 
 
 type file_tree = [

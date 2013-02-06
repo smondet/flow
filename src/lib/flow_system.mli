@@ -128,6 +128,44 @@ val copy:
                [> `block_device | `character_device
                | `fifo | `socket | `symlink of string ] ] ]) t
 
+(** Try to move [src] to [dest] using [Lwt_unix.rename], if it works,
+    return [`moved] if it does not work but [copy] could work
+    (i.e. both paths are not in the same {i device}) return
+    [`must_copy]. *)
+val move_in_same_device: src:string -> copy_destination ->
+  ([ `moved | `must_copy ],
+   [> `system of [> `move of string ] * [> `exn of exn ] ]) t
+
+(** Heavy-weight function trying to mimic the behavior the UNIX command “mv”
+    (c.f. {{:http://www.openbsd.org/cgi-bin/cvsweb/src/bin/mv/mv.c?rev=1.35;content-type=text%2Fplain;only_with_tag=HEAD}mv.c}):
+    it tries [move_in_same_device] and if it returns [`must_copy] it
+    calls [copy] and [remove] (if [copy] fails, the [remove] won't
+    happen but there will be no clean-up of the files already
+    copied).
+*)
+val move:
+  ?ignore_strange:bool ->
+  ?symlinks:[ `fail | `follow | `redo ] ->
+  ?buffer_size:int ->
+  src:string -> copy_destination ->
+  (unit,
+   [> `system of
+       [> `copy of string
+       | `move of string
+       | `remove of string
+       | `file_info of string
+       | `list_directory of string
+       | `make_symlink of string * string
+       | `mkdir of string ] *
+         [> `already_exists
+         | `exn of exn
+         | `file_not_found of string
+         | `wrong_access_rights of int
+         | `wrong_file_kind of
+             string *
+               [> `block_device | `character_device
+               | `fifo | `socket | `symlink of string ] ] ]) t
+
 (** Representation of a hierarchy of files ([`leaf]) and directories ([`node]). *)
 type file_tree = [
 | `node of string * file_tree list
