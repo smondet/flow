@@ -63,7 +63,16 @@ val file_info :
    | `socket],
    [> `system of [> `file_info of string ] * [> `exn of exn ] ]) t
 
+(** Get all the children of a directory, through a [next] stream-like
+    function. *)
+val list_directory: string ->
+  (unit ->
+   (string option,
+    [> `system of [> `list_directory of string ] * [> `exn of exn ] ]) t)
+
 (** Remove a file or a directory recursively. *)
 val remove: string ->
   (unit,
-   [> `system of [> `file_info of string | `remove of string ] * [> `exn of exn ] ]) t
+   [> `system of [> `file_info of string
+                 | `remove of string
+                 | `list_directory of string ] * [> `exn of exn ] ]) t

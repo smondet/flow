@@ -170,7 +170,8 @@ let () =
     eprintf "End with Error:\n%s\n%!"
       (<:sexp_of<
           [ `system of
-              [`file_info of string | `mkdir of string | `remove of string] *
+              [`file_info of string | `mkdir of string
+              | `remove of string | `list_directory of string ] *
                 [ `already_exists | `exn of exn | `wrong_access_rights of int ]
           | `io_exn of exn
           | `write_file_error of string * exn
