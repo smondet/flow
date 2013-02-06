@@ -65,7 +65,8 @@ web: doc
       ocamlfind remove $(LIB_NAME)
     doclib/index.html: $(LIB_NAME).cma
       mkdir -p doclib
-      ocamlfind ocamldoc -package core,lwt,lwt.unix,lwt.ssl,lwt.preemptive \
+      ocamlfind ocamldoc \
+        -syntax camlp4o -package core,lwt,lwt.unix,lwt.ssl,lwt.preemptive,sexplib.syntax \
         -charset UTF-8 -d doclib/ -t "The Flow Monad Library" -html \
         -keep-code -colorize-code *.mli *.ml -sort -I .
     doc_library: doclib/index.html
