@@ -5,9 +5,9 @@ open Flow_base
 
 
 (** Block for a given amount of seconds ([Lwt_unix.sleep]). *)
-val sleep: float -> (unit, [> `io_exn of exn ]) t    
+val sleep: float -> (unit, [> `io_exn of exn ]) t
 
-  
+
 (** Make [/bin/sh] execute a command. *)
 val system_command: string ->
   (unit,
@@ -63,3 +63,7 @@ val file_info :
    | `socket],
    [> `system of [> `file_info of string ] * [> `exn of exn ] ]) t
 
+(** Remove a file or a directory recursively. *)
+val remove: string ->
+  (unit,
+   [> `system of [> `file_info of string | `remove of string ] * [> `exn of exn ] ]) t

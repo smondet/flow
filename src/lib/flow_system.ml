@@ -137,5 +137,48 @@ let file_info ?(follow_symlink=false) path =
     end
   end
 
+let remove path =
+  let rec remove_aux path =
+    file_info path
+    >>= begin function
+    | `absent -> return ()
+    | `block_device
+    | `character_device
+    | `symlink _
+    | `fifo
+    | `socket
+    | `file _-> wrap_io Lwt_unix.unlink path
+    | `directory ->
+      let f_stream = Lwt_unix.files_of_directory path in
+      let next s =
+        wrap_io ()
+          ~f:Lwt.(fun () ->
+            catch (fun () -> Lwt_stream.next s >>= fun n -> return (Some n))
+              (function Lwt_stream.Empty -> return None
+              | e -> fail e)
+          ) in
+      let rec loop stream =
+        next stream
+        >>= begin function
+        | Some ".."
+        | Some "." -> loop stream
+        | Some name ->
+          remove_aux (Filename.concat path name)
+          >>= fun () ->
+          loop stream
+        | None -> return ()
+        end
+      in
+      loop f_stream
+      >>= fun () ->
+      wrap_io Lwt_unix.rmdir path
+    end
+  in
+  remove_aux path
+  >>< begin function
+  | Ok () -> return ()
+  | Error (`io_exn e) -> error (`system (`remove path, `exn e))
+  | Error (`system e) -> error (`system e)
+  end
 
 
