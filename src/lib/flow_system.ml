@@ -103,7 +103,7 @@ let lwt_unix_readlink l =
 let file_info ?(follow_symlink=false) path =
   let stat_fun =
     if follow_symlink then Lwt_unix.stat else Lwt_unix.lstat in
-  eprintf "(l)stat %s? \n%!" path;
+  (* eprintf "(l)stat %s? \n%!" path; *)
   Lwt.catch
     Lwt.(fun () -> stat_fun path >>= fun s -> return (Ok (`unix_stats s)))
     begin function
@@ -119,7 +119,7 @@ let file_info ?(follow_symlink=false) path =
     | S_DIR -> return (`directory)
     | S_REG -> return (`file (stats.st_size))
     | S_LNK ->
-      eprintf "readlink %s? \n%!" path;
+      (* eprintf "readlink %s? \n%!" path; *)
       begin
         Flow_base.catch_io lwt_unix_readlink path
         >>< begin function
@@ -128,7 +128,7 @@ let file_info ?(follow_symlink=false) path =
         end
       end
       >>= fun destination ->
-      eprintf "readlink %s worked \n%!" path;
+      (* eprintf "readlink %s worked \n%!" path; *)
       return (`symlink destination)
     | S_CHR -> return (`character_device)
     | S_BLK -> return (`block_device)
