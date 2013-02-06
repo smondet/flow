@@ -231,20 +231,26 @@ let test_copy style_in style_out =
   System.copy ~symlinks:`redo ~src:subtree_path (`into_directory out_dir)
   >>= fun () ->
 
-  ksprintf System.get_system_command_output "find %s | wc -l" in_dir
-  >>= fun (find_in, _) ->
-  ksprintf System.get_system_command_output "find %s | wc -l" out_dir
-  >>= fun (find_out, _) ->
 
-  if find_in <> find_out then (
-    say "find_in: %s" find_in;
-    say "find_out: %s" find_out;
-    fail_test "find_in <> find_out"
-  ) else (
+  System.file_tree ~follow_symlinks:false in_dir
+  >>= fun in_tree ->
+  System.file_tree ~follow_symlinks:false out_dir
+  >>= fun out_tree ->
+  begin match in_tree, out_tree with
+  | `node (inname, lin), `node (outname, lout)
+    when inname = Filename.basename in_dir
+    && outname = Filename.basename out_dir
+      && lin = lout ->
     return ()
-  )
-     >>= fun () ->
+  | _ ->
+    say "in_tree: %s" (Sexp.to_string_hum (System.sexp_of_file_tree in_tree));
+    say "out_tree: %s" (Sexp.to_string_hum (System.sexp_of_file_tree out_tree));
+    fail_test "in_tree <> out_tree"
+  end
+  >>= fun () ->
 
+  System.remove in_dir >>= fun () ->
+  System.remove out_dir >>= fun () ->
   say "test_copy: OK";
   return ()
 
@@ -276,6 +282,7 @@ let () =
       (<:sexp_of<
           [ `system of
               [`file_info of string | `mkdir of string
+              | `file_tree of string
               | `copy of string
               | `make_symlink of string * string
               | `remove of string | `list_directory of string ] *
