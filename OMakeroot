@@ -6,7 +6,7 @@ DefineCommandVars()
 
 USE_OCAMLFIND = true
 
-OCAMLPACKS[] = core lwt lwt.unix lwt.ssl lwt.preemptive
+OCAMLPACKS[] = core lwt lwt.unix lwt.ssl lwt.preemptive sexplib.syntax
 
 if $(not $(OCAMLFIND_EXISTS))
   eprintln(This project requires ocamlfind, but is was not found.)
@@ -22,8 +22,7 @@ OCAMLOPTFLAGS +=
 OCAML_LINK_FLAGS +=
 OCAML_BYTE_LINK_FLAGS +=
 OCAML_NATIVE_LINK_FLAGS +=
-OCAMLFINDFLAGS +=
-
+OCAMLFINDFLAGS += -syntax camlp4o
 
 clean:
   rm -fr _build OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
@@ -72,11 +71,9 @@ web: doc
     doc_library: doclib/index.html
 
   .SUBDIRS: _build/test/
-    OCAMLFINDFLAGS += -syntax camlp4o
     OCAMLFLAGS += -I ../lib
     OCAMLCFLAGS += flow.cma
     OCAMLOPTFLAGS += flow.cmxa
-    OCAMLPACKS[] +=  sexplib sexplib.syntax
     io_test.cmx: ../lib/flow.cmxa
     sys_test.cmx: ../lib/flow.cmxa
     .DEFAULT: $(OCamlProgram io_test, io_test) $(OCamlProgram sys_test, sys_test)

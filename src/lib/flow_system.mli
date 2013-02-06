@@ -47,20 +47,27 @@ val mkdir_p : ?perm:int -> string ->
        [> `mkdir of string ] *
          [> `exn of exn | `wrong_access_rights of int ] ]) t
 
+(** Quick information on files. *)
+type file_info =
+[ `absent
+| `file of int
+| `symlink of string
+| `block_device
+| `character_device
+| `directory
+| `fifo
+| `socket]
+
+val sexp_of_file_info: file_info -> Sexp.t
+val file_info_of_sexp: Sexp.t -> file_info
+
 (** Get information about a path (whether it exists, its size, or
     sym-link destination). If [follow_symlink] is [false]
     (default) use [lstat] (so the result can be [`symlink _]), if [true]
     call [stat] (information about the target).  *)
 val file_info :
   ?follow_symlink:bool -> string ->
-  ([ `absent
-   | `file of int
-   | `symlink of string
-   | `block_device
-   | `character_device
-   | `directory
-   | `fifo
-   | `socket],
+  (file_info,
    [> `system of [> `file_info of string ] * [> `exn of exn ] ]) t
 
 (** Get all the children of a directory, through a [next] stream-like
@@ -120,3 +127,21 @@ val copy:
              string *
                [> `block_device | `character_device
                | `fifo | `socket | `symlink of string ] ] ]) t
+
+(** Representation of a hierarchy of files ([`leaf]) and directories ([`node]). *)
+type file_tree = [
+| `node of string * file_tree list
+| `leaf of string * file_info
+] with sexp
+
+(** Obtain the [file_tree] starting at a given path. *)
+val file_tree :
+  ?follow_symlinks:bool ->
+  string ->
+  (file_tree, [> `system of
+                 [> `file_info of string
+                 | `file_tree of string
+                 | `list_directory of string ] *
+                   [> `exn of exn
+                   | `file_not_found of string
+                   | `wrong_file_kind of 'b ] ]) t

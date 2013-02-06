@@ -1,5 +1,6 @@
 open Core.Std
 open Flow_base
+open Flow_list
 
 module IO = Flow_io
 
@@ -91,6 +92,17 @@ let mkdir_p ?perm dirname =
     return dir)
   >>= fun _ ->
   return ()
+
+type file_info =
+[ `absent
+| `file of int
+| `symlink of string
+| `block_device
+| `character_device
+| `directory
+| `fifo
+| `socket]
+with sexp
 
 (*
   WARNING: this is a work-around for issue [329] with Lwt_unix.readlink.
@@ -266,5 +278,60 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
     | `io_exn e -> error (`system (`copy src, `exn e))
     | `file_not_found _
     | `wrong_file_kind _ as e -> error (`system (`copy src, e))
+    | `system e -> error (`system e)
+    end
+
+
+type file_tree = [
+| `node of string * file_tree list
+| `leaf of string * file_info
+] with sexp
+
+let file_tree ?(follow_symlinks=false) path =
+  let directory p l = return (`node (p, l)) in
+  let file p l = return (`leaf (p, l)) in
+  let rec find_aux path =
+    file_info path
+    >>= begin function
+    | `absent -> error (`file_not_found path)
+    | `block_device
+    | `character_device
+    | `fifo
+    | `file _
+    | `socket as k -> file (Filename.basename path) k
+    | `symlink content as k ->
+      begin match follow_symlinks with
+      | true ->
+        let continue =
+          if Filename.is_relative content
+          then (Filename.concat path content)
+          else content in
+        find_aux continue
+      | false -> file (Filename.basename path) k
+      end
+    | `directory ->
+      let next_dir = list_directory path in
+      let rec loop acc =
+        next_dir ()
+        >>= begin function
+        | Some ".."
+        | Some "." -> loop acc
+        | Some name -> loop (name :: acc)
+        | None -> return acc
+        end
+      in
+      loop []
+      >>= fun sub_list ->
+      while_sequential (List.sort ~cmp:String.compare sub_list) (fun dir ->
+        find_aux (Filename.concat path dir))
+      >>= fun sub_tree ->
+      directory (Filename.basename path) sub_tree
+    end
+  in
+  bind_on_error (find_aux path)
+    begin function
+    | `io_exn e -> error (`system (`file_tree path, `exn e))
+    | `file_not_found _
+    | `wrong_file_kind _ as e -> error (`system (`file_tree path, e))
     | `system e -> error (`system e)
     end
