@@ -39,7 +39,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <span class="ot">open</span> Core<span class="kw">.</span>Std
 
 <span class="kw">let</span> read_some_file_with_timeout () =
-  Flow<span class="kw">.</span>Sys<span class="kw">.</span>with_timeout 4.2 ~f:(<span class="kw">fun</span> () -&gt;
+  Flow<span class="kw">.</span>System<span class="kw">.</span>with_timeout 4.2 ~f:(<span class="kw">fun</span> () -&gt;
     Flow<span class="kw">.</span>IO<span class="kw">.</span>read_file <span class="st">&quot;/etc/passwd&quot;</span>)</code></pre>
 <p>The possible errors of <code>with_timeout</code> and <code>read_file</code> will be merged and automatically documented:</p>
 <pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">val</span> read_some_file_with_timeout :
@@ -70,13 +70,13 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <h1 id="links">Links</h1>
 <p>Documentation:</p>
 <ul>
-<li><a href="./doclib-dev/index.html">Development version</a></li>
+<li><a href="./doclib-dev/index.html">Development version</a>.</li>
 </ul>
-<p>Source: <a href="https://github.com/smondet/flow">on Github</a></p>
+<p>Source: <a href="https://github.com/smondet/flow">on Github</a>.</p>
 <p>Authors:</p>
 <ul>
-<li><a href="http://seb.mondet.org">Sebastien Mondet</a></li>
-<li><a href="http://ashishagarwal.org/">Ashish Agarwal</a></li>
+<li><a href="http://seb.mondet.org">Sebastien Mondet</a>,</li>
+<li><a href="http://ashishagarwal.org/">Ashish Agarwal</a>.</li>
 </ul>
 <h1 id="license">License</h1>
 <p>This is the <a href="http://en.wikipedia.org/wiki/ISC_license">ISC License</a>:</p>

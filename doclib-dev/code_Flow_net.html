@@ -12,20 +12,20 @@
 <link title="Flow_io" rel="Chapter" href="Flow_io.html">
 <link title="Flow_list" rel="Chapter" href="Flow_list.html">
 <link title="Flow_net" rel="Chapter" href="Flow_net.html">
-<link title="Flow_sys" rel="Chapter" href="Flow_sys.html"><title>The Flow Monad Library : Flow_net</title>
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_net</title>
 </head>
 <body>
 <code class="code"><span class="keyword">open</span>&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span><br>
 <span class="keyword">open</span>&nbsp;<span class="constructor">Flow_base</span><br>
 <span class="keyword">open</span>&nbsp;<span class="constructor">Flow_list</span><br>
-<span class="keyword">open</span>&nbsp;<span class="constructor">Flow_sys</span><br>
+<span class="keyword">open</span>&nbsp;<span class="constructor">Flow_system</span><br>
 <br>
 <span class="keyword">let</span>&nbsp;dbg&nbsp;fmt&nbsp;=<br>
 &nbsp;&nbsp;ksprintf&nbsp;(<span class="keyword">fun</span>&nbsp;s&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;indented&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s&nbsp;|!&nbsp;<span class="constructor">String</span>.split&nbsp;~on:<span class="string">'\n'</span>&nbsp;|!&nbsp;<span class="constructor">String</span>.concat&nbsp;~sep:<span class="string">"\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"</span>&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_io</span>.eprintf&nbsp;<span class="string">"DEBUG:&nbsp;&nbsp;&nbsp;%s\n%!"</span>)&nbsp;indented)&nbsp;fmt<br>
-&nbsp;&nbsp;<br>
+<br>
 <span class="keyword">module</span>&nbsp;<span class="constructor">Tls</span>&nbsp;=&nbsp;<span class="keyword">struct</span><br>
 <br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;accept&nbsp;socket&nbsp;context&nbsp;=<br>
@@ -69,7 +69,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ssl</span>.<span class="constructor">Certificate_error</span>&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Error</span>&nbsp;<span class="keywordsign">`</span>ssl_certificate_error)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Error</span>&nbsp;(<span class="keywordsign">`</span>io_exn&nbsp;e))))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;<span class="keyword">end</span><br>
@@ -157,7 +157,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span>;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set_cipher_list&nbsp;c&nbsp;<span class="string">"TLSv1"</span>;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Option</span>.iter&nbsp;verification_policy&nbsp;(<span class="keyword">function</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>verify_server&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>verify_server&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ssl</span>.set_verify_depth&nbsp;c&nbsp;99;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set_verify&nbsp;c&nbsp;[<span class="constructor">Verify_peer</span>]&nbsp;(<span class="constructor">Some</span>&nbsp;client_verify_callback);<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>allow_self_signed&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;()<br>
@@ -170,7 +170,7 @@
 <span class="keyword">end</span><br>
 <br>
 <span class="keyword">let</span>&nbsp;init_tls&nbsp;=&nbsp;<span class="constructor">Ssl</span>.init&nbsp;~thread_safe:<span class="keyword">true</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<br>
 <span class="keyword">type</span>&nbsp;connection&nbsp;=&nbsp;{<br>
 &nbsp;&nbsp;inchan:&nbsp;<span class="constructor">Lwt_io</span>.input_channel;<br>
 &nbsp;&nbsp;outchan:&nbsp;<span class="constructor">Lwt_io</span>.output_channel;<br>
@@ -193,7 +193,7 @@
 <span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>revoked&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span>.<span class="constructor">Time</span>.t<br>
 <span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>valid&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;]<br>
 <br>
-<span class="keyword">type</span>&nbsp;client_kind&nbsp;=&nbsp;<br>
+<span class="keyword">type</span>&nbsp;client_kind&nbsp;=<br>
 [&nbsp;<span class="keywordsign">`</span>anonymous_client<br>
 <span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>invalid_client&nbsp;<span class="keyword">of</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>expired&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span>.<span class="constructor">Time</span>.t<br>
@@ -217,11 +217,11 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.in_channel_of_descr&nbsp;&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;outchan&nbsp;=&nbsp;<span class="constructor">Lwt_ssl</span>.out_channel_of_descr&nbsp;socket_fd&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;(connection&nbsp;inchan&nbsp;outchan&nbsp;socket_fd))<br>
-&nbsp;&nbsp;<br>
-&nbsp;&nbsp;<br>
+<br>
+<br>
 <span class="keyword">let</span>&nbsp;authenticating_tls_server<br>
 &nbsp;&nbsp;&nbsp;&nbsp;~ca_certificate&nbsp;~check_client_certificate<br>
-&nbsp;&nbsp;&nbsp;&nbsp;?on_error&nbsp;~port&nbsp;~cert_key&nbsp;f&nbsp;=&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?on_error&nbsp;~port&nbsp;~cert_key&nbsp;f&nbsp;=<br>
 &nbsp;&nbsp;<span class="constructor">Tls</span>.server_context&nbsp;~ca_certificate&nbsp;cert_key<br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;tls_context&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;<span class="constructor">Tls</span>.accept_loop&nbsp;?on_error&nbsp;~check_client_certificate&nbsp;~tls_context&nbsp;~port<br>
@@ -237,7 +237,7 @@
 &nbsp;&nbsp;*&nbsp;[&nbsp;<span class="keywordsign">`</span>verify_server&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>allow_self_signed&nbsp;]<br>
 <span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>plain<br>
 ]<br>
-&nbsp;&nbsp;<br>
+<br>
 <span class="keyword">let</span>&nbsp;unix_connect&nbsp;sockaddr&nbsp;=<br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;socket&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_unix</span>.(<br>
@@ -252,7 +252,7 @@
 &nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_unix</span>.connect&nbsp;socket)&nbsp;sockaddr<br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;return&nbsp;socket<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<br>
 <span class="keyword">let</span>&nbsp;connect&nbsp;~address&nbsp;specification&nbsp;=<br>
 &nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;specification&nbsp;<span class="keyword">with</span><br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>plain&nbsp;<span class="keywordsign">-&gt;</span><br>
@@ -271,5 +271,5 @@
 &nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
 <br>
-&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<br>
 </code></body></html>

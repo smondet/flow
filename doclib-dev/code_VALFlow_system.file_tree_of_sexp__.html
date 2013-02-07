@@ -12,8 +12,10 @@
 <link title="Flow_io" rel="Chapter" href="Flow_io.html">
 <link title="Flow_list" rel="Chapter" href="Flow_list.html">
 <link title="Flow_net" rel="Chapter" href="Flow_net.html">
-<link title="Flow_sys" rel="Chapter" href="Flow_sys.html"><title>The Flow Monad Library : Flow_sys.sleep</title>
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_system.file_tree_of_sexp__</title>
 </head>
 <body>
-<code class="code"><span class="keyword">let</span>&nbsp;sleep&nbsp;f&nbsp;=<br>
-&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_unix</span>.sleep&nbsp;f</code></body></html>
+<code class="code">file_tree&nbsp;=&nbsp;[<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>node&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;file_tree&nbsp;list<br>
+<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>leaf&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;file_info<br>
+]</code></body></html>
