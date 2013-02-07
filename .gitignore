@@ -1,4 +1,5 @@
 _build/
+doclib-dev/
 *.annot
 *.cmo
 *.cma
@@ -11,3 +12,5 @@ _build/
 /.omakedb
 /.omakedb.lock
 /OMakeroot.omc
+/index.html
+/style.css

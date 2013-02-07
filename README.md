@@ -26,7 +26,7 @@ wrong, and also to force you to treat all cases:
 open Core.Std
 
 let read_some_file_with_timeout () =
-  Flow.Sys.with_timeout 4.2 ~f:(fun () ->
+  Flow.System.with_timeout 4.2 ~f:(fun () ->
     Flow.IO.read_file "/etc/passwd")
 ```
 
@@ -74,14 +74,14 @@ Links
 
 Documentation:
 
-- [Development version](./doclib-dev/index.html)
+- [Development version](./doclib-dev/index.html).
 
-Source: [on Github](https://github.com/smondet/flow)
+Source: [on Github](https://github.com/smondet/flow).
 
 Authors:
 
-- [Sebastien Mondet](http://seb.mondet.org)
-- [Ashish Agarwal](http://ashishagarwal.org/)
+- [Sebastien Mondet](http://seb.mondet.org),
+- [Ashish Agarwal](http://ashishagarwal.org/).
 
 License
 =======
