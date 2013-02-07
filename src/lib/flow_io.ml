@@ -11,7 +11,7 @@ let wrap_deferred_io f =
 let with_out_channel out ?buffer_size ~f =
   begin match out with
   | `stdout -> return Lwt_io.stdout
-  | `strerr -> return Lwt_io.stderr
+  | `stderr -> return Lwt_io.stderr
   | `channel c -> return c
   | `file file ->
     wrap_deferred_io (fun () ->
