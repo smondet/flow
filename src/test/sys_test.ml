@@ -55,7 +55,7 @@ let test_file_info () =
     end
   in
   check ((=) `directory) "/" >>= fun () ->
-  check (function `file _ -> true | _ -> false) "/etc/passwd" >>= fun () ->
+  check (function `regular_file _ -> true | _ -> false) "/etc/passwd" >>= fun () ->
   ksprintf (check ((=) (`symlink "/etc/passwd"))) "%s/symlink_to_file" tmp
   >>= fun () ->
   ksprintf (check ((=) (`symlink "/tmp"))) "%s/symlink_to_dir" tmp
@@ -127,7 +127,7 @@ let test_remove style =
   >>= fun () ->
   System.file_info test_regular
   >>= begin function
-  | `file l when l > 2 -> return ()
+  | `regular_file l when l > 2 -> return ()
   | e -> error (`wrong_file_info (test_regular, e))
   end
   >>= fun () ->
@@ -211,7 +211,7 @@ let test_copy style_in style_out =
     System.copy ~src:test_reg_file (`into_directory out_dir)
     >>= fun () ->
     let expected_path = Filename.(concat out_dir (basename test_reg_file)) in
-    is_present ~and_matches:((=) (`file size)) expected_path
+    is_present ~and_matches:((=) (`regular_file size)) expected_path
     >>= fun () ->
     IO.read_file expected_path
     >>= fun content_got ->
@@ -365,7 +365,7 @@ let () =
               | `character_device
               | `directory
               | `fifo
-              | `file of int
+              | `regular_file of int
               | `socket
               | `symlink of string ]
           | `system_command_error of

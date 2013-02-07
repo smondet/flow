@@ -50,7 +50,7 @@ val mkdir_p : ?perm:int -> string ->
 (** Quick information on files. *)
 type file_info =
 [ `absent
-| `file of int
+| `regular_file of int
 | `symlink of string
 | `block_device
 | `character_device

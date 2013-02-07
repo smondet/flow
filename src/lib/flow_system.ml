@@ -96,7 +96,7 @@ let mkdir_p ?perm dirname =
 
 type file_info =
 [ `absent
-| `file of int
+| `regular_file of int
 | `symlink of string
 | `block_device
 | `character_device
@@ -132,7 +132,7 @@ let file_info ?(follow_symlink=false) path =
   | `unix_stats stats ->
     begin match stats.st_kind with
     | S_DIR -> return (`directory)
-    | S_REG -> return (`file (stats.st_size))
+    | S_REG -> return (`regular_file (stats.st_size))
     | S_LNK ->
       (* eprintf "readlink %s? \n%!" path; *)
       begin
@@ -174,7 +174,7 @@ let remove path =
     | `symlink _
     | `fifo
     | `socket
-    | `file _-> wrap_deferred_system (fun () -> Lwt_unix.unlink path)
+    | `regular_file _-> wrap_deferred_system (fun () -> Lwt_unix.unlink path)
     | `directory ->
       let `stream next_dir = list_directory path in
       let rec loop () =
@@ -237,7 +237,7 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
         eprintf "make_symlink %s %s\n" content link_path;
         make_symlink ~target:content ~link_path
       end
-    | `file _->
+    | `regular_file _->
       let output_path = path_of_destination ~src ~dst in
       IO.with_out_channel ~buffer_size (`file output_path) ~f:(fun outchan ->
         IO.with_in_channel ~buffer_size (`file src) ~f:(fun inchan ->
@@ -316,7 +316,7 @@ let file_tree ?(follow_symlinks=false) path =
     | `block_device
     | `character_device
     | `fifo
-    | `file _
+    | `regular_file _
     | `socket as k -> file (Filename.basename path) k
     | `symlink content as k ->
       begin match follow_symlinks with
