@@ -40,10 +40,11 @@ tags: TAGS
 doc: doc_library
 
 web: doc
-  rm -fr doclib-dev
-  cp -r _build/lib/doclib doclib-dev
-  cp src/doc/style.css .
-  pandoc -s README.md -o index.html -c ./style.css
+  rm -fr _web/doclib-dev
+  mkdir -p _web
+  cp -r _build/lib/doclib _web/doclib-dev
+  cp src/doc/style.css _web/
+  pandoc -s README.md -o _web/index.html -c ./style.css
 
 .SUBDIRS: .
   if $(not $(file-exists _build/))
