@@ -4,6 +4,9 @@ open Flow
 let say fmt =
   ksprintf (fun s -> eprintf "%s\n%!" s) fmt
 
+let wrap_deferred_io f =
+  wrap_deferred (fun () -> f ()) ~on_exn:(fun e -> `io_test_exn e)
+
 let basic_file_to_file () =
   let t1 = object
     val mutable q = (Fqueue.empty: string Fqueue.t)
@@ -49,7 +52,7 @@ let basic_stream () =
   end in
   let s1 = Lwt_stream.of_list ["hello"; "uryyb"] in
   let s2 = IO.Transform.transform_stream rot13 s1 in
-  wrap_io Lwt_stream.to_list s2
+  wrap_deferred_io (fun () -> Lwt_stream.to_list s2)
   >>= fun l2 ->
   while_sequential l2 (fun s -> say "rot13ed: %s" s; return ())
   >>= fun _ ->
@@ -76,6 +79,7 @@ let () =
   let module E = struct
     type t = [
     | `io_exn of exn
+    | `io_test_exn of exn
     | `read_file_error of string * exn
     | `write_file_error of string * exn
     | `transform of

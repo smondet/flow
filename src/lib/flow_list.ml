@@ -9,12 +9,12 @@ let while_sequential:
     exception Local_exception of b
     let ms l f =
       bind_on_error
-        (catch_io
-           (Lwt_list.map_s (fun o ->
-             Lwt.bind (f o) (function
-             | Ok oo -> Lwt.return oo
-             | Error ee -> Lwt.fail (Local_exception ee))))
-           l)
+        (catch_deferred
+           (fun () ->
+             Lwt_list.map_s (fun o ->
+               Lwt.bind (f o) (function
+               | Ok oo -> Lwt.return oo
+               | Error ee -> Lwt.fail (Local_exception ee))) l))
         (function Local_exception e -> error e
         | e ->
           failwithf "Expecting only Local_exception, but got: %s"

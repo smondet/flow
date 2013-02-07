@@ -10,16 +10,15 @@ let bin_send oc msg =
   if String.length msg > max_message_length then
     error (`bin_send (`message_too_long msg))
   else
-    catch_io msg
-      ~f:Lwt.(fun s ->
-        Lwt_io.BE.write_int oc (String.length s) >>= fun () ->
-        Lwt_io.write oc s >>= fun () ->
-        Lwt_io.flush oc)
+    catch_deferred Lwt.(fun () ->
+      Lwt_io.BE.write_int oc (String.length msg) >>= fun () ->
+      Lwt_io.write oc msg >>= fun () ->
+      Lwt_io.flush oc)
     |! bind_on_error ~f:(fun e -> error (`bin_send (`exn e)))
 
 let bin_recv ic =
   let io =
-    catch_io () ~f:Lwt.(fun () ->
+    catch_deferred Lwt.(fun () ->
       Lwt_io.BE.read_int ic >>= fun c ->
       begin if max_message_length >= c && c > 0 then (
         let s = String.make c 'B' in
@@ -37,6 +36,9 @@ let bin_recv ic =
   else
     return s
 
+let wrap_deferred_io f =
+  wrap_deferred ~on_exn:(fun e -> `io_exn e) (fun () -> f ())
+
 (******************************************************************************)
 (* Channels *)
 
@@ -46,20 +48,21 @@ let with_out_channel out ?buffer_size ~f =
   | `strerr -> return Lwt_io.stderr
   | `channel c -> return c
   | `file file ->
-    wrap_io (Lwt_io.open_file ~mode:Lwt_io.output ?buffer_size) file
+    wrap_deferred_io (fun () ->
+      Lwt_io.open_file ~mode:Lwt_io.output ?buffer_size file)
   end
   >>= fun outchan ->
   begin
     f outchan
     >>< begin function
     | Ok o ->
-      wrap_io Lwt_io.close outchan
+      wrap_deferred_io (fun () -> Lwt_io.close outchan)
       >>= fun () ->
       return o
     | Error e ->
       begin match out with
       | `file _ ->
-        wrap_io Lwt_io.close outchan
+        wrap_deferred_io (fun () -> Lwt_io.close outchan)
         >>= fun _ ->
         error e
       | _ -> error e
@@ -68,9 +71,9 @@ let with_out_channel out ?buffer_size ~f =
   end
 
 let write out s =
-  wrap_io (Lwt_io.fprint out) s
+  wrap_deferred_io (fun () -> Lwt_io.fprint out s)
 
-let flush out = wrap_io Lwt_io.flush out
+let flush out = wrap_deferred_io (fun () -> Lwt_io.flush out)
 
 
 let with_in_channel inspec ?buffer_size ~f =
@@ -78,20 +81,21 @@ let with_in_channel inspec ?buffer_size ~f =
   | `stdin -> return Lwt_io.stdin
   | `channel c -> return c
   | `file file ->
-    wrap_io (Lwt_io.open_file ~mode:Lwt_io.input ?buffer_size) file
+    wrap_deferred_io (fun () ->
+      Lwt_io.open_file ~mode:Lwt_io.input ?buffer_size file)
   end
   >>= fun inchan ->
   begin
     f inchan
     >>< begin function
     | Ok o ->
-      wrap_io Lwt_io.close inchan
+      wrap_deferred_io (fun () -> Lwt_io.close inchan)
       >>= fun () ->
       return o
     | Error e ->
       begin match inspec with
       | `file _ ->
-        wrap_io Lwt_io.close inchan
+        wrap_deferred_io (fun () -> Lwt_io.close inchan)
         >>= fun _ ->
         error e
       | _ -> error e
@@ -100,18 +104,18 @@ let with_in_channel inspec ?buffer_size ~f =
   end
 
 let read ?count i =
-  wrap_io (Lwt_io.read ?count) i
+  wrap_deferred_io (fun () -> Lwt_io.read ?count i)
 
 (******************************************************************************)
 (* Whole Files *)
 
 let  write_file file ~content =
-  catch_io () ~f:Lwt_io.(fun () ->
+  catch_deferred Lwt_io.(fun () ->
     with_file ~mode:output file (fun i -> write i content))
   |! bind_on_error ~f:(fun e -> error (`write_file_error (file, e)))
 
 let read_file file =
-  catch_io () ~f:Lwt_io.(fun () ->
+  catch_deferred Lwt_io.(fun () ->
     with_file ~mode:input file (fun i -> read i))
   |! bind_on_error ~f:(fun e -> error (`read_file_error (file, e)))
 

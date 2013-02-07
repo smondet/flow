@@ -10,11 +10,11 @@ val init_tls :  unit -> unit
 
 (** A connection is full duplex and can be shut down. *)
 type connection
-val in_channel: connection -> Lwt_io.input_channel 
-val out_channel: connection -> Lwt_io.output_channel 
+val in_channel: connection -> Lwt_io.input_channel
+val out_channel: connection -> Lwt_io.output_channel
 
-(**  Note that [shutdown connection] closes the channels. *) 
-val shutdown : connection -> (unit, [> `io_exn of exn ]) Flow_base.t
+(**  Note that [shutdown connection] closes the channels. *)
+val shutdown : connection -> (unit, [> `net_exn of exn ]) Flow_base.t
 
 (** {3 Client Connection} *)
 
@@ -25,23 +25,23 @@ type connection_specification = [
 | `plain
 ]
 (** Specification of the kind of connection (for the function [connect]). *)
-    
+
 val connect: address:Lwt_unix.sockaddr -> connection_specification ->
-  (connection, [> `io_exn of exn | `tls_context_exn of exn ]) Flow_base.t
+  (connection, [> `net_exn of exn | `tls_context_exn of exn ]) Flow_base.t
 (** Connect to the server at [address]. *)
 
 (** {3 Server Establishment} *)
 
 val plain_server :
   ?on_error:(([> `accept_exn of Core.Std.Exn.t
-              | `io_exn of exn
+              | `net_exn of exn
               | `not_an_ssl_socket
               | `tls_accept_error of exn ]
                  as 'errors) ->
-             (unit, [> `io_exn of exn ]) Flow_base.t) ->
+             (unit, [> `net_exn of exn ]) Flow_base.t) ->
   port:int ->
   (connection -> (unit, 'errors) Flow_base.t) ->
-  (unit, [> `io_exn of exn | `socket_creation_exn of exn ]) Flow_base.t
+  (unit, [> `net_exn of exn | `socket_creation_exn of exn ]) Flow_base.t
 (** Start a “plain” TCP server on port [port]. This function returns
     immediately, the “accept-loop” runs in {i Lwt} threads.
 
@@ -63,11 +63,11 @@ val plain_server :
 
 val tls_server :
   ?on_error:(([> `accept_exn of Core.Std.Exn.t
-              | `io_exn of exn
+              | `net_exn of exn
               | `not_an_ssl_socket
               | `tls_accept_error of exn ]
                  as 'a) ->
-             (unit, [> `io_exn of exn ]) Flow_base.t) ->
+             (unit, [> `net_exn of exn ]) Flow_base.t) ->
   port:int ->
   cert_key:string * string ->
   (connection -> (unit, 'a) Flow_base.t) ->
@@ -104,12 +104,12 @@ val authenticating_tls_server :
   check_client_certificate:(Ssl.certificate ->
                             (client_check_result,
                              [> `accept_exn of Core.Std.Exn.t
-                             | `io_exn of exn
+                             | `net_exn of exn
                              | `not_an_ssl_socket
                              | `tls_accept_error of exn ]
                                as 'a)
                               Flow_base.t) ->
-  ?on_error:('a -> (unit, [> `io_exn of exn ]) Flow_base.t) ->
+  ?on_error:('a -> (unit, [> `net_exn of exn ]) Flow_base.t) ->
   port:int ->
   cert_key:string * string ->
   (connection -> client_kind ->

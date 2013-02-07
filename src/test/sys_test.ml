@@ -357,7 +357,6 @@ let () =
                     [ `block_device | `character_device | `fifo | `socket | `symlink of string ]
                 | `exn of exn | `wrong_access_rights of int ]
           | `failed_test of string
-          | `io_exn of exn
           | `write_file_error of string * exn
           | `read_file_error of string * exn
           | `wrong_file_info of string *

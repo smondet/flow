@@ -4,6 +4,8 @@ open Flow_list
 
 module IO = Flow_io
 
+let wrap_deferred_system f =
+  wrap_deferred f ~on_exn:(fun e -> `system_exn e)
 
 let discriminate_process_status s ret =
   begin match ret with
@@ -15,25 +17,24 @@ let discriminate_process_status s ret =
 
 let system_command s =
   bind_on_error ~f:(fun e -> error (`system_command_error (s, `exn e)))
-    (catch_io () ~f:Lwt_io.(fun () -> Lwt_unix.system s))
+    (catch_deferred Lwt_io.(fun () -> Lwt_unix.system s))
   >>= fun ret ->
   discriminate_process_status s ret
 
 let sleep f =
-  wrap_io Lwt_unix.sleep f
+  wrap_deferred_system (fun () -> Lwt_unix.sleep f)
 
 
 let get_system_command_output s =
   bind_on_error ~f:(fun e -> error (`system_command_error (s, `exn e)))
-    (catch_io
+    (catch_deferred
        Lwt.(fun () ->
          let inprocess = Lwt_process.(open_process_full (shell s)) in
          Lwt_list.map_p Lwt_io.read
            [inprocess#stdout; inprocess#stderr; ]
          >>= fun output ->
          inprocess#status >>= fun status ->
-         return (status, output))
-       ())
+         return (status, output)))
   >>= fun (ret, output) ->
   discriminate_process_status s ret
   >>= fun () ->
@@ -49,7 +50,7 @@ let with_timeout time ~f =
     end
     begin function
     | Lwt_unix.Timeout -> error (`timeout time)
-    | e -> error (`io_exn e)
+    | e -> error (`system_exn e)
     end
 
 
@@ -135,7 +136,7 @@ let file_info ?(follow_symlink=false) path =
     | S_LNK ->
       (* eprintf "readlink %s? \n%!" path; *)
       begin
-        Flow_base.catch_io lwt_unix_readlink path
+        Flow_base.catch_deferred (fun () -> lwt_unix_readlink path)
         >>< begin function
         | Ok s -> return s
         | Error e -> error (`system (`file_info path, `exn e))
@@ -154,16 +155,14 @@ let file_info ?(follow_symlink=false) path =
 let list_directory path =
   let f_stream = Lwt_unix.files_of_directory path in
   let next s =
-    wrap_io ()
-      ~f:Lwt.(fun () ->
-        catch (fun () -> Lwt_stream.next s >>= fun n -> return (Some n))
-          (function Lwt_stream.Empty -> return None
-          | e -> fail e)
-      ) in
+    catch_deferred Lwt.(fun () ->
+      catch (fun () -> Lwt_stream.next s >>= fun n -> return (Some n))
+        (function Lwt_stream.Empty -> return None
+        | e -> fail e)
+    ) in
   `stream (fun () ->
     bind_on_error (next f_stream)
-      ~f:(function
-      | `io_exn e -> error (`system (`list_directory path, `exn e))))
+      ~f:(fun e -> error (`system (`list_directory path, `exn e))))
 
 let remove path =
   let rec remove_aux path =
@@ -175,7 +174,7 @@ let remove path =
     | `symlink _
     | `fifo
     | `socket
-    | `file _-> wrap_io Lwt_unix.unlink path
+    | `file _-> wrap_deferred_system (fun () -> Lwt_unix.unlink path)
     | `directory ->
       let `stream next_dir = list_directory path in
       let rec loop () =
@@ -192,21 +191,22 @@ let remove path =
       in
       loop ()
       >>= fun () ->
-      wrap_io Lwt_unix.rmdir path
+      wrap_deferred_system (fun () -> Lwt_unix.rmdir path)
     end
   in
   remove_aux path
   >>< begin function
   | Ok () -> return ()
-  | Error (`io_exn e) -> error (`system (`remove path, `exn e))
+  | Error (`system_exn e) -> error (`system (`remove path, `exn e))
   | Error (`system e) -> error (`system e)
   end
 
 let make_symlink ~target ~link_path =
   bind_on_error
-    (wrap_io (Lwt_unix.symlink target) link_path)
+    (wrap_deferred_system (fun () -> Lwt_unix.symlink target link_path))
     begin function
-    | `io_exn e -> error (`system (`make_symlink (target, link_path), `exn e))
+    | `system_exn e ->
+      error (`system (`make_symlink (target, link_path), `exn e))
     end
 
 type copy_destination = [

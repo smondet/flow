@@ -5,7 +5,7 @@ open Flow_base
 
 
 (** Block for a given amount of seconds ([Lwt_unix.sleep]). *)
-val sleep: float -> (unit, [> `io_exn of exn ]) t
+val sleep: float -> (unit, [> `system_exn of exn ]) t
 
 
 (** Make [/bin/sh] execute a command. *)
@@ -23,10 +23,10 @@ val get_system_command_output: string ->
    ]) t
 
 val with_timeout : float ->
-  f:(unit -> ('a, [> `io_exn of exn | `timeout of float ] as 'b) t) ->
+  f:(unit -> ('a, [> `system_exn of exn | `timeout of float ] as 'b) t) ->
   ('a, 'b) t
 (** Execute a function [f] with a timeout (in seconds). If [f] throws
-    an exception it will be passed as [`io_exn e], if the functions
+    an exception it will be passed as [`system_exn e], if the functions
     timeouts the error will be [`timeout time]. *)
 
 (** Create a directory (default permissions: [0o700]). *)

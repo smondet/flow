@@ -3,17 +3,27 @@ open Flow_base
 open Flow_list
 open Flow_system
 
+
 let dbg fmt =
   ksprintf (fun s ->
     let indented =
       s |! String.split ~on:'\n' |! String.concat ~sep:"\n          " in
-    wrap_io (Lwt_io.eprintf "DEBUG:   %s\n%!") indented) fmt
+    bind_on_error
+      (catch_deferred (fun () -> Lwt_io.eprintf "DEBUG:   %s\n%!" indented))
+      (fun e ->
+        Lwt.async (fun () ->
+          Lwt_io.eprintf "!!!! DEBUG EXN: %s !!!!!\n%!" Exn.(to_string e));
+        return ())
+    ) fmt
+
+let wrap_deferred_net f =
+  wrap_deferred ~on_exn:(fun e -> `net_exn e) (fun () -> f ())
 
 module Tls = struct
 
   let accept socket context =
     bind_on_error
-      (catch_io (Lwt_ssl.ssl_accept socket) context)
+      (catch_deferred (fun () -> Lwt_ssl.ssl_accept socket context))
       (fun e -> error (`tls_accept_error e))
 
   let server_socket ~port =
@@ -27,14 +37,16 @@ module Tls = struct
     | e -> error (`socket_creation_exn e)
 
   let tls_connect socket ssl_context =
-    wrap_io (Lwt_ssl.ssl_connect socket) ssl_context
+    wrap_deferred_net (fun () -> Lwt_ssl.ssl_connect socket ssl_context)
 
   let tls_shutdown socket =
-    wrap_io Lwt_ssl.ssl_shutdown socket >>= fun () ->
-    wrap_io (fun  () ->
+    wrap_deferred_net (fun () -> Lwt_ssl.ssl_shutdown socket)
+    >>= fun () ->
+    wrap_deferred_net (fun  () ->
       Lwt_ssl.shutdown socket Lwt_unix.SHUTDOWN_ALL;
-      Lwt.return ()) () >>= fun () ->
-    wrap_io Lwt_ssl.close socket
+      Lwt.return ())
+    >>= fun () ->
+    wrap_deferred_net (fun () -> Lwt_ssl.close socket)
 
   module M_ugly_ssl_get_certificate = struct
     type ttt = Plain | SSL of Ssl.socket
@@ -53,7 +65,7 @@ module Tls = struct
             | Ssl.Certificate_error ->
               return (Error `ssl_certificate_error)
             | e ->
-              return (Error (`io_exn e))))
+              return (Error (`net_exn e))))
       end
   end
   let tls_get_certificate = M_ugly_ssl_get_certificate.get_certificate
@@ -91,7 +103,7 @@ module Tls = struct
           ~error:(function
           | `ssl_certificate_error ->
             return (`invalid_client `wrong_certificate)
-          | `not_an_ssl_socket | `io_exn _ as e -> error e)
+          | `not_an_ssl_socket | `net_exn _ as e -> error e)
           ~ok:(fun cert ->
             ccc cert >>= function
             | `valid name -> return (`valid_client (name: string))
@@ -107,7 +119,7 @@ module Tls = struct
       f ssl_accepted client
     in
     let rec accept_loop c =
-      wrap_io (Lwt_unix.accept_n socket) 10
+      wrap_deferred_net (fun () -> Lwt_unix.accept_n socket 10)
       >>= fun (accepted_list, potential_exn) ->
       map_option potential_exn (fun exn -> on_error (`accept_exn exn))
       >>= fun (_ : unit option) ->
@@ -166,8 +178,8 @@ let in_channel t = t.inchan
 let out_channel t = t.outchan
 let shutdown {tls_socket; inchan; outchan} =
   Tls.tls_shutdown tls_socket >>= fun () ->
-  wrap_io Lwt_io.close inchan >>= fun () ->
-  wrap_io Lwt_io.close outchan >>= fun () ->
+  wrap_deferred_net (fun () -> Lwt_io.close inchan) >>= fun () ->
+  wrap_deferred_net (fun () -> Lwt_io.close outchan) >>= fun () ->
   return ()
 
 type client_check_result =
@@ -232,7 +244,7 @@ let unix_connect sockaddr =
         eprintf "Unix.Unix_error: %s %s %s\n%!" (Unix.error_message e) s a;
         raise ex
     ) in
-  wrap_io (Lwt_unix.connect socket) sockaddr
+  wrap_deferred_net (fun () -> Lwt_unix.connect socket sockaddr)
   >>= fun () ->
   return socket
 
