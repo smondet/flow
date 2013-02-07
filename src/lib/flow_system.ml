@@ -160,7 +160,7 @@ let list_directory path =
           (function Lwt_stream.Empty -> return None
           | e -> fail e)
       ) in
-  (fun () ->
+  `stream (fun () ->
     bind_on_error (next f_stream)
       ~f:(function
       | `io_exn e -> error (`system (`list_directory path, `exn e))))
@@ -177,7 +177,7 @@ let remove path =
     | `socket
     | `file _-> wrap_io Lwt_unix.unlink path
     | `directory ->
-      let next_dir = list_directory path in
+      let `stream next_dir = list_directory path in
       let rec loop () =
         next_dir ()
         >>= begin function
@@ -255,7 +255,7 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
       let new_dir = path_of_destination ~src ~dst in
       mkdir new_dir
       >>= fun () ->
-      let next_dir = list_directory src in
+      let `stream next_dir = list_directory src in
       let rec loop () =
         next_dir ()
         >>= begin function
@@ -329,7 +329,7 @@ let file_tree ?(follow_symlinks=false) path =
       | false -> file (Filename.basename path) k
       end
     | `directory ->
-      let next_dir = list_directory path in
+      let `stream next_dir = list_directory path in
       let rec loop acc =
         next_dir ()
         >>= begin function
