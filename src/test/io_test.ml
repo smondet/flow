@@ -51,7 +51,7 @@ let basic_stream () =
     method stop = stopped <- true
   end in
   let s1 = Lwt_stream.of_list ["hello"; "uryyb"] in
-  let s2 = IO.Transform.transform_stream rot13 s1 in
+  let s2 = IO.Transform.to_stream_fun rot13 s1 in
   wrap_deferred_io (fun () -> Lwt_stream.to_list s2)
   >>= fun l2 ->
   while_sequential l2 (fun s -> say "rot13ed: %s" s; return ())

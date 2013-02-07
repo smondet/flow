@@ -100,7 +100,7 @@ module Transform = struct
     | Ok o -> return o
     | Error e -> error (`transform e)
 
-  let transform_stream tr stream =
+  let to_stream_fun tr stream =
     let open Lwt in
     let rec loop_until_ready tr stream =
       match tr#next with
