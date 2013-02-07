@@ -84,10 +84,10 @@ val make_symlink: target:string -> link_path:string ->
   (unit,
    [> `system of [> `make_symlink of string * string] * [> `exn of exn ] ]) t
 
-(** Specification of a “destination” for [copy] *)
-type copy_destination = [
-| `into_directory of string
-| `as_new of string
+(** Specification of a “destination” for [copy] and [move]. *)
+type file_destination = [
+| `into of string (** [`into path] means copy 'file' into the {b directory} path. *)
+| `onto of string (** [`onto path] means copy 'file' {b as} [path]. *)
 ]
 
 (** Copy files or directories (recursively).
@@ -106,7 +106,7 @@ val copy:
   ?ignore_strange:bool ->
   ?symlinks:[ `fail | `follow | `redo ] ->
   ?buffer_size:int ->
-  src:string -> copy_destination ->
+  src:string -> file_destination ->
   (unit,
    [> `system of
        [> `copy of string
@@ -127,7 +127,7 @@ val copy:
     return [`moved] if it does not work but [copy] could work
     (i.e. both paths are not in the same {i device}) return
     [`must_copy]. *)
-val move_in_same_device: src:string -> copy_destination ->
+val move_in_same_device: src:string -> file_destination ->
   ([ `moved | `must_copy ],
    [> `system of [> `move of string ] * [> `exn of exn ] ]) t
 
@@ -142,7 +142,7 @@ val move:
   ?ignore_strange:bool ->
   ?symlinks:[ `fail | `follow | `redo ] ->
   ?buffer_size:int ->
-  src:string -> copy_destination ->
+  src:string -> file_destination ->
   (unit,
    [> `system of
        [> `copy of string

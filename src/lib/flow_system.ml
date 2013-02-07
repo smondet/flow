@@ -213,14 +213,14 @@ let make_symlink ~target ~link_path =
       error (`system (`make_symlink (target, link_path), `exn e))
     end
 
-type copy_destination = [
-| `into_directory of string
-| `as_new of string
+type file_destination = [
+| `into of string
+| `onto of string
 ]
 let path_of_destination ~src ~dst =
   match dst with
-  | `into_directory p -> Filename.(concat p (basename src))
-  | `as_new p -> p
+  | `into p -> Filename.(concat p (basename src))
+  | `onto p -> p
 
 let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src dst =
   let rec copy_aux ~src ~dst =
@@ -268,7 +268,7 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
         | Some name ->
           copy_aux
             ~src:(Filename.concat src name)
-            ~dst:(`into_directory new_dir)
+            ~dst:(`into new_dir)
           >>= fun () ->
           loop ()
         | None -> return ()

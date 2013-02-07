@@ -188,7 +188,7 @@ let test_copy style_in style_out =
   >>= fun () ->
 
   say "`redo symlinks %s into %s" test_symlink out_dir;
-  System.copy ~symlinks:`redo ~src:test_symlink (`into_directory out_dir)
+  System.copy ~symlinks:`redo ~src:test_symlink (`into out_dir)
   >>= fun () ->
   let expected_path = Filename.concat out_dir "test_symlink" in
   is_present ~and_matches:((=) (`symlink "/tmp/bouh")) expected_path
@@ -196,7 +196,7 @@ let test_copy style_in style_out =
 
   say "redo symlink %s as %s" test_symlink out_dir;
   let dst = Filename.concat out_dir "test_symlink_new" in
-  System.copy ~symlinks:`redo ~src:test_symlink (`as_new dst)
+  System.copy ~symlinks:`redo ~src:test_symlink (`onto dst)
   >>= fun () ->
   is_present ~and_matches:((=) (`symlink "/tmp/bouh")) dst
   >>= fun () ->
@@ -208,7 +208,7 @@ let test_copy style_in style_out =
     let content = String.make size 'B' in
     IO.write_file test_reg_file ~content
     >>= fun () ->
-    System.copy ~src:test_reg_file (`into_directory out_dir)
+    System.copy ~src:test_reg_file (`into out_dir)
     >>= fun () ->
     let expected_path = Filename.(concat out_dir (basename test_reg_file)) in
     is_present ~and_matches:((=) (`regular_file size)) expected_path
@@ -228,7 +228,7 @@ let test_copy style_in style_out =
   random_tree subtree_path 20
   >>= fun () ->
 
-  System.copy ~symlinks:`redo ~src:subtree_path (`into_directory out_dir)
+  System.copy ~symlinks:`redo ~src:subtree_path (`into out_dir)
   >>= fun () ->
 
 
@@ -276,7 +276,7 @@ let test_move style_in style_out =
   let test_symlink = Filename.concat in_dir "test_symlink" in
   System.make_symlink ~target:"/tmp/bouh" ~link_path:test_symlink
   >>= fun () ->
-  System.move ~symlinks:`redo ~src:test_symlink (`into_directory out_dir)
+  System.move ~symlinks:`redo ~src:test_symlink (`into out_dir)
   >>= fun () ->
   let expected_path = Filename.concat out_dir "test_symlink" in
   is_present ~and_matches:((=) (`symlink "/tmp/bouh")) expected_path
@@ -290,7 +290,7 @@ let test_move style_in style_out =
   >>= fun src_tree ->
 
   let new_tree = Filename.concat out_dir "random_tree_moved" in
-  System.move ~symlinks:`redo ~src:subtree_path (`as_new new_tree)
+  System.move ~symlinks:`redo ~src:subtree_path (`onto new_tree)
   >>= fun () ->
   System.file_tree ~follow_symlinks:false new_tree
   >>= fun dst_tree ->
