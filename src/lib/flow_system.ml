@@ -54,16 +54,16 @@ let with_timeout time ~f =
     end
 
 
-let mkdir ?(perm=0o700) dirname =
+let mkdir_or_fail ?(perm=0o700) dirname =
   Lwt.catch
     Lwt.(fun () -> Lwt_unix.mkdir dirname perm >>= fun () -> return (Ok ()))
     begin function
     | Unix.Unix_error (Unix.EACCES, cmd, arg)  ->
-      error (`system (`mkdir dirname, `wrong_access_rights perm))
+      error (`system (`make_directory dirname, `wrong_access_rights perm))
     | Unix.Unix_error (Unix.EEXIST, cmd, arg)  ->
-      error (`system (`mkdir dirname, `already_exists))
+      error (`system (`make_directory dirname, `already_exists))
     | e ->
-      error (`system (`mkdir dirname, `exn e))
+      error (`system (`make_directory dirname, `exn e))
     end
 
 let mkdir_even_if_exists ?(perm=0o700) dirname =
@@ -71,28 +71,32 @@ let mkdir_even_if_exists ?(perm=0o700) dirname =
     Lwt.(fun () -> Lwt_unix.mkdir dirname perm >>= fun () -> return (Ok ()))
     begin function
     | Unix.Unix_error (Unix.EACCES, cmd, arg)  ->
-      error (`system (`mkdir dirname, `wrong_access_rights perm))
+      error (`system (`make_directory dirname, `wrong_access_rights perm))
     | Unix.Unix_error (Unix.EEXIST, cmd, arg)  -> return ()
-    | e -> error (`system (`mkdir dirname, `exn e))
+    | e -> error (`system (`make_directory dirname, `exn e))
     end
 
-let mkdir_p ?perm dirname =
-  (* Code inspired by Core.Std.Unix *)
-  let init, dirs =
-    match Filename.parts dirname with
-    | [] -> failwithf "Sys.mkdir_p: BUG! Filename.parts %s -> []" dirname ()
-    | init :: dirs -> (init, dirs)
-  in
-  mkdir_even_if_exists ?perm init
-  >>= fun () ->
-  List.fold dirs ~init:(return init) ~f:(fun m part ->
-    m >>= fun previous ->
-    let dir = Filename.concat previous part in
-    mkdir_even_if_exists ?perm dir
+let make_directory ?perm ?(parents=true) dirname =
+  if parents then begin
+    (* Code inspired by Core.Std.Unix *)
+    let init, dirs =
+      match Filename.parts dirname with
+      | [] -> failwithf "Sys.mkdir_p: BUG! Filename.parts %s -> []" dirname ()
+      | init :: dirs -> (init, dirs)
+    in
+    mkdir_even_if_exists ?perm init
     >>= fun () ->
-    return dir)
-  >>= fun _ ->
-  return ()
+    List.fold dirs ~init:(return init) ~f:(fun m part ->
+      m >>= fun previous ->
+      let dir = Filename.concat previous part in
+      mkdir_even_if_exists ?perm dir
+      >>= fun () ->
+      return dir)
+    >>= fun _ ->
+    return ()
+  end else begin
+    mkdir_or_fail ?perm dirname
+  end
 
 type file_info =
 [ `absent
@@ -253,7 +257,7 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
           loop ()))
     | `directory ->
       let new_dir = path_of_destination ~src ~dst in
-      mkdir new_dir
+      make_directory new_dir
       >>= fun () ->
       let `stream next_dir = list_directory src in
       let rec loop () =

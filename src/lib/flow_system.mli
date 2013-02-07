@@ -29,23 +29,17 @@ val with_timeout : float ->
     an exception it will be passed as [`system_exn e], if the functions
     timeouts the error will be [`timeout time]. *)
 
-(** Create a directory (default permissions: [0o700]). *)
-val mkdir :
-  ?perm:int ->
-  string ->
+(** Create a directory and its potential parents.
+    If [parents] is [true] (the {b default}) it is like [mkdir -p] and it
+    won't fail if the directory already exists.
+    If [parents] is [false], then it is like [mkdir] (fails on
+    existing directories).
+    The default permissions are [0o700]. *)
+val make_directory: ?perm:int -> ?parents:bool -> string ->
   (unit,
    [> `system of
-       [> `mkdir of string ] *
-         [> `already_exists
-         | `exn of exn
-         | `wrong_access_rights of int ] ]) t
-
-(** Create a directory and its potential parents (i.e. like [mkdir -p]).  *)
-val mkdir_p : ?perm:int -> string ->
-  (unit,
-   [> `system of
-       [> `mkdir of string ] *
-         [> `exn of exn | `wrong_access_rights of int ] ]) t
+       [> `make_directory of string ] *
+         [> `already_exists | `exn of exn | `wrong_access_rights of int ] ]) t
 
 (** Quick information on files. *)
 type file_info =
@@ -119,7 +113,7 @@ val copy:
        | `file_info of string
        | `list_directory of string
        | `make_symlink of string * string
-       | `mkdir of string ] *
+       | `make_directory of string ] *
          [> `already_exists
          | `exn of exn
          | `file_not_found of string
@@ -157,7 +151,7 @@ val move:
        | `file_info of string
        | `list_directory of string
        | `make_symlink of string * string
-       | `mkdir of string ] *
+       | `make_directory of string ] *
          [> `already_exists
          | `exn of exn
          | `file_not_found of string
