@@ -16,7 +16,7 @@
 </head>
 <body>
 <code class="code"><span class="keyword">sig</span><br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;sleep&nbsp;:&nbsp;float&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(unit,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;])&nbsp;<span class="constructor">Flow_base</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;sleep&nbsp;:&nbsp;float&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(unit,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>system_exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;])&nbsp;<span class="constructor">Flow_base</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;system_command&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;(unit,<br>
@@ -40,24 +40,17 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;with_timeout&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Core</span>.<span class="constructor">Common</span>.decimal&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;f:(unit&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>timeout&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Core</span>.<span class="constructor">Common</span>.decimal&nbsp;]&nbsp;<span class="keyword">as</span>&nbsp;<span class="keywordsign">'</span>b)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>system_exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>timeout&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Core</span>.<span class="constructor">Common</span>.decimal&nbsp;]&nbsp;<span class="keyword">as</span>&nbsp;<span class="keywordsign">'</span>b)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t)&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>b)&nbsp;<span class="constructor">Flow_base</span>.t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mkdir&nbsp;:<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;make_directory&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;?perm:int&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?parents:<span class="constructor">Core</span>.<span class="constructor">Std</span>.sexp_bool&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;(unit,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>system&nbsp;<span class="keyword">of</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>mkdir&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>make_directory&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;*<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>already_exists&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>wrong_access_rights&nbsp;<span class="keyword">of</span>&nbsp;int&nbsp;]&nbsp;])<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mkdir_p&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;?perm:int&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;(unit,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>system&nbsp;<span class="keyword">of</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>mkdir&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>wrong_access_rights&nbsp;<span class="keyword">of</span>&nbsp;int&nbsp;]&nbsp;])<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;file_info&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>absent<br>
@@ -65,7 +58,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>character_device<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>directory<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>fifo<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file&nbsp;<span class="keyword">of</span>&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>regular_file&nbsp;<span class="keyword">of</span>&nbsp;int<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>socket<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>symlink&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;sexp_of_file_info&nbsp;:&nbsp;file_info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Sexplib</span>.<span class="constructor">Pre_sexp</span>.t<br>
@@ -101,21 +94,21 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>make_symlink&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;*&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;*<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;]&nbsp;])<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;copy_destination&nbsp;=<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>as_new&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>into_directory&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;file_destination&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>into&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>onto&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;copy&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;?ignore_strange:<span class="constructor">Core</span>.<span class="constructor">Std</span>.sexp_bool&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?symlinks:[&nbsp;<span class="keywordsign">`</span>fail&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>follow&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>redo&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?buffer_size:int&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;src:<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;copy_destination&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;file_destination&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;(unit,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>system&nbsp;<span class="keyword">of</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>copy&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file_info&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>list_directory&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>make_symlink&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;*&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>mkdir&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>make_directory&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>make_symlink&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;*&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;*<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>already_exists<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>exn&nbsp;<span class="keyword">of</span>&nbsp;exn<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file_not_found&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
@@ -130,7 +123,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;move_in_same_device&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;src:<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;copy_destination&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;file_destination&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;([&nbsp;<span class="keywordsign">`</span>moved&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>must_copy&nbsp;],<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>system&nbsp;<span class="keyword">of</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>move&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;*&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;]&nbsp;])<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t<br>
@@ -139,14 +132,14 @@
 &nbsp;&nbsp;&nbsp;&nbsp;?symlinks:[&nbsp;<span class="keywordsign">`</span>fail&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>follow&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>redo&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?buffer_size:int&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;src:<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;copy_destination&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;file_destination&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;(unit,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>system&nbsp;<span class="keyword">of</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>copy&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file_info&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>list_directory&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>make_directory&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>make_symlink&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;*&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>mkdir&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>move&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>remove&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;*<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>already_exists<br>

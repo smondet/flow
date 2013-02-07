@@ -43,12 +43,12 @@ Start an authenticating TLS server,  the <code class="code">ca_certificate</code
 </div>
 </td></tr>
 <tr><td align="left"><br>B</td></tr>
-<tr><td><a href="Flow_io.html#VALbin_recv">bin_recv</a> [<a href="Flow_io.html">Flow_io</a>]</td>
+<tr><td><a href="Flow_net.html#VALbin_recv">bin_recv</a> [<a href="Flow_net.html">Flow_net</a>]</td>
 <td><div class="info">
 Read a message sent by <code class="code">bin_send</code>.
 </div>
 </td></tr>
-<tr><td><a href="Flow_io.html#VALbin_send">bin_send</a> [<a href="Flow_io.html">Flow_io</a>]</td>
+<tr><td><a href="Flow_net.html#VALbin_send">bin_send</a> [<a href="Flow_net.html">Flow_net</a>]</td>
 <td><div class="info">
 Write a message on an output channel (size: 32 bits big endian, string).
 </div>
@@ -61,9 +61,9 @@ Do something on errors (generally in order to augment them).
 </div>
 </td></tr>
 <tr><td align="left"><br>C</td></tr>
-<tr><td><a href="Flow_base.html#VALcatch_io">catch_io</a> [<a href="Flow_base.html">Flow_base</a>]</td>
+<tr><td><a href="Flow_base.html#VALcatch_deferred">catch_deferred</a> [<a href="Flow_base.html">Flow_base</a>]</td>
 <td><div class="info">
-<code class="code">catch_io f x</code> uses <code class="code"><span class="constructor">Lwt</span>.catch</code> to catch all the
+<code class="code">catch_deferred f x</code> uses <code class="code"><span class="constructor">Lwt</span>.catch</code> to catch all the
     lwt-exceptions in the result.
 </div>
 </td></tr>
@@ -156,6 +156,11 @@ Get all the children of a directory, through a <code class="code">next</code> st
 </div>
 </td></tr>
 <tr><td align="left"><br>M</td></tr>
+<tr><td><a href="Flow_system.html#VALmake_directory">make_directory</a> [<a href="Flow_system.html">Flow_system</a>]</td>
+<td><div class="info">
+Create a directory and its potential parents.
+</div>
+</td></tr>
 <tr><td><a href="Flow_system.html#VALmake_symlink">make_symlink</a> [<a href="Flow_system.html">Flow_system</a>]</td>
 <td><div class="info">
 Make a symbolic link <code class="code">link_path</code> pointing at <code class="code">target</code>.
@@ -166,19 +171,9 @@ Make a symbolic link <code class="code">link_path</code> pointing at <code class
 <code class="code">map_option</code> allows to put options <i>inside</i> the t.
 </div>
 </td></tr>
-<tr><td><a href="Flow_io.html#VALmax_message_length">max_message_length</a> [<a href="Flow_io.html">Flow_io</a>]</td>
+<tr><td><a href="Flow_net.html#VALmax_message_length">max_message_length</a> [<a href="Flow_net.html">Flow_net</a>]</td>
 <td><div class="info">
 The maximum message length (10 million bytes right now).
-</div>
-</td></tr>
-<tr><td><a href="Flow_system.html#VALmkdir">mkdir</a> [<a href="Flow_system.html">Flow_system</a>]</td>
-<td><div class="info">
-Create a directory (default permissions: <code class="code">0o700</code>).
-</div>
-</td></tr>
-<tr><td><a href="Flow_system.html#VALmkdir_p">mkdir_p</a> [<a href="Flow_system.html">Flow_system</a>]</td>
-<td><div class="info">
-Create a directory and its potential parents (i.e.
 </div>
 </td></tr>
 <tr><td><a href="Flow_system.html#VALmove">move</a> [<a href="Flow_system.html">Flow_system</a>]</td>
@@ -254,7 +249,7 @@ Like <code class="code">plain_server</code> but with a TLS layer, the server wil
     authenticated with <code class="code">~cert_key:(<span class="string">"cert.crt"</span>, <span class="string">"k.key"</span>)</code>.
 </div>
 </td></tr>
-<tr><td><a href="Flow_io.Transform.html#VALtransform_stream">transform_stream</a> [<a href="Flow_io.Transform.html">Flow_io.Transform</a>]</td>
+<tr><td><a href="Flow_io.Transform.html#VALto_stream_fun">to_stream_fun</a> [<a href="Flow_io.Transform.html">Flow_io.Transform</a>]</td>
 <td><div class="info">
 Use a transform to process a <code class="code"><span class="constructor">Lwt_stream</span>.t</code>.
 </div>
@@ -291,9 +286,9 @@ Put any non-I/O function
     in a flow-monad and do “something” on the error.
 </div>
 </td></tr>
-<tr><td><a href="Flow_base.html#VALwrap_io">wrap_io</a> [<a href="Flow_base.html">Flow_base</a>]</td>
+<tr><td><a href="Flow_base.html#VALwrap_deferred">wrap_deferred</a> [<a href="Flow_base.html">Flow_base</a>]</td>
 <td><div class="info">
-Put any Lwt.t in a flow-monad like <code class="code">catch_io</code> but put the exception
+Put any Lwt.t in a flow-monad like <code class="code">catch_deferred</code> but put the exception
     in a polymorphic variant (the default being <code class="code"><span class="keywordsign">`</span>io_exn e</code>).
 </div>
 </td></tr>

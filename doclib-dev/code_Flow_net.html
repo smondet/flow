@@ -20,17 +20,27 @@
 <span class="keyword">open</span>&nbsp;<span class="constructor">Flow_list</span><br>
 <span class="keyword">open</span>&nbsp;<span class="constructor">Flow_system</span><br>
 <br>
+<br>
 <span class="keyword">let</span>&nbsp;dbg&nbsp;fmt&nbsp;=<br>
 &nbsp;&nbsp;ksprintf&nbsp;(<span class="keyword">fun</span>&nbsp;s&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;indented&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s&nbsp;|!&nbsp;<span class="constructor">String</span>.split&nbsp;~on:<span class="string">'\n'</span>&nbsp;|!&nbsp;<span class="constructor">String</span>.concat&nbsp;~sep:<span class="string">"\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"</span>&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_io</span>.eprintf&nbsp;<span class="string">"DEBUG:&nbsp;&nbsp;&nbsp;%s\n%!"</span>)&nbsp;indented)&nbsp;fmt<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bind_on_error<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.eprintf&nbsp;<span class="string">"DEBUG:&nbsp;&nbsp;&nbsp;%s\n%!"</span>&nbsp;indented))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.async&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.eprintf&nbsp;<span class="string">"!!!!&nbsp;DEBUG&nbsp;EXN:&nbsp;%s&nbsp;!!!!!\n%!"</span>&nbsp;<span class="constructor">Exn</span>.(to_string&nbsp;e));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;)&nbsp;fmt<br>
+<br>
+<span class="keyword">let</span>&nbsp;wrap_deferred_net&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;wrap_deferred&nbsp;~on_exn:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">`</span>net_exn&nbsp;e)&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;f&nbsp;())<br>
 <br>
 <span class="keyword">module</span>&nbsp;<span class="constructor">Tls</span>&nbsp;=&nbsp;<span class="keyword">struct</span><br>
 <br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;accept&nbsp;socket&nbsp;context&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;bind_on_error<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_io&nbsp;(<span class="constructor">Lwt_ssl</span>.ssl_accept&nbsp;socket)&nbsp;context)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_ssl</span>.ssl_accept&nbsp;socket&nbsp;context))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>tls_accept_error&nbsp;e))<br>
 <br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;server_socket&nbsp;~port&nbsp;=<br>
@@ -44,14 +54,16 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>socket_creation_exn&nbsp;e)<br>
 <br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;tls_connect&nbsp;socket&nbsp;ssl_context&nbsp;=<br>
-&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_ssl</span>.ssl_connect&nbsp;socket)&nbsp;ssl_context<br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_ssl</span>.ssl_connect&nbsp;socket&nbsp;ssl_context)<br>
 <br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;tls_shutdown&nbsp;socket&nbsp;=<br>
-&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_ssl</span>.ssl_shutdown&nbsp;socket&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="keyword">fun</span>&nbsp;&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_ssl</span>.ssl_shutdown&nbsp;socket)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_ssl</span>.shutdown&nbsp;socket&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">SHUTDOWN_ALL</span>;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.return&nbsp;())&nbsp;()&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_ssl</span>.close&nbsp;socket<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.return&nbsp;())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_ssl</span>.close&nbsp;socket)<br>
 <br>
 &nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">M_ugly_ssl_get_certificate</span>&nbsp;=&nbsp;<span class="keyword">struct</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;ttt&nbsp;=&nbsp;<span class="constructor">Plain</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">SSL</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ssl</span>.socket<br>
@@ -70,7 +82,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ssl</span>.<span class="constructor">Certificate_error</span>&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Error</span>&nbsp;<span class="keywordsign">`</span>ssl_certificate_error)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Error</span>&nbsp;(<span class="keywordsign">`</span>io_exn&nbsp;e))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Error</span>&nbsp;(<span class="keywordsign">`</span>net_exn&nbsp;e))))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;tls_get_certificate&nbsp;=&nbsp;<span class="constructor">M_ugly_ssl_get_certificate</span>.get_certificate<br>
@@ -108,7 +120,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~error:(<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>ssl_certificate_error&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="keywordsign">`</span>invalid_client&nbsp;<span class="keywordsign">`</span>wrong_certificate)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_an_ssl_socket&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;_&nbsp;<span class="keyword">as</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;e)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_an_ssl_socket&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>net_exn&nbsp;_&nbsp;<span class="keyword">as</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;e)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ok:(<span class="keyword">fun</span>&nbsp;cert&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ccc&nbsp;cert&nbsp;&gt;&gt;=&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>valid&nbsp;name&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;(<span class="keywordsign">`</span>valid_client&nbsp;(name:&nbsp;string))<br>
@@ -124,7 +136,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;ssl_accepted&nbsp;client<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;accept_loop&nbsp;c&nbsp;=<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_unix</span>.accept_n&nbsp;socket)&nbsp;10<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.accept_n&nbsp;socket&nbsp;10)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(accepted_list,&nbsp;potential_exn)&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_option&nbsp;potential_exn&nbsp;(<span class="keyword">fun</span>&nbsp;exn&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;on_error&nbsp;(<span class="keywordsign">`</span>accept_exn&nbsp;exn))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(_&nbsp;:&nbsp;unit&nbsp;option)&nbsp;<span class="keywordsign">-&gt;</span><br>
@@ -183,8 +195,8 @@
 <span class="keyword">let</span>&nbsp;out_channel&nbsp;t&nbsp;=&nbsp;t.outchan<br>
 <span class="keyword">let</span>&nbsp;shutdown&nbsp;{tls_socket;&nbsp;inchan;&nbsp;outchan}&nbsp;=<br>
 &nbsp;&nbsp;<span class="constructor">Tls</span>.tls_shutdown&nbsp;tls_socket&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan)&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan)&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;return&nbsp;()<br>
 <br>
 <span class="keyword">type</span>&nbsp;client_check_result&nbsp;=<br>
@@ -249,7 +261,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eprintf&nbsp;<span class="string">"Unix.Unix_error:&nbsp;%s&nbsp;%s&nbsp;%s\n%!"</span>&nbsp;(<span class="constructor">Unix</span>.error_message&nbsp;e)&nbsp;s&nbsp;a;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;raise&nbsp;ex<br>
 &nbsp;&nbsp;&nbsp;&nbsp;)&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_unix</span>.connect&nbsp;socket)&nbsp;sockaddr<br>
+&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.connect&nbsp;socket&nbsp;sockaddr)<br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;return&nbsp;socket<br>
 <br>
@@ -271,5 +283,39 @@
 &nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
 <br>
+</code><table><tr><td></td><td><span class="comment">(******************************************************************************)</span></td></tr></table><code class="code"><br>
+<span class="comment">(*&nbsp;Binary&nbsp;Messages&nbsp;*)</span><br>
+<br>
+<span class="keyword">let</span>&nbsp;max_message_length&nbsp;=&nbsp;10_000_000<br>
+<br>
+<span class="keyword">let</span>&nbsp;bin_send&nbsp;oc&nbsp;msg&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;<span class="constructor">String</span>.length&nbsp;msg&nbsp;&gt;&nbsp;max_message_length&nbsp;<span class="keyword">then</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>bin_send&nbsp;(<span class="keywordsign">`</span>message_too_long&nbsp;msg))<br>
+&nbsp;&nbsp;<span class="keyword">else</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;catch_deferred&nbsp;<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.<span class="constructor">BE</span>.write_int&nbsp;oc&nbsp;(<span class="constructor">String</span>.length&nbsp;msg)&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.write&nbsp;oc&nbsp;msg&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.flush&nbsp;oc)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;|!&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>bin_send&nbsp;(<span class="keywordsign">`</span>exn&nbsp;e)))<br>
+<br>
+<span class="keyword">let</span>&nbsp;bin_recv&nbsp;ic&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;io&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;catch_deferred&nbsp;<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.<span class="constructor">BE</span>.read_int&nbsp;ic&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;c&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">if</span>&nbsp;max_message_length&nbsp;&gt;=&nbsp;c&nbsp;<span class="keywordsign">&amp;&amp;</span>&nbsp;c&nbsp;&gt;&nbsp;0&nbsp;<span class="keyword">then</span>&nbsp;(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;s&nbsp;=&nbsp;<span class="constructor">String</span>.make&nbsp;c&nbsp;<span class="string">'B'</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.read_into_exactly&nbsp;ic&nbsp;s&nbsp;0&nbsp;c&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;s<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)&nbsp;<span class="keyword">else</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;<span class="string">""</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(c,s))&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;bind_on_error&nbsp;io&nbsp;(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>bin_recv&nbsp;(<span class="keywordsign">`</span>exn&nbsp;e)))<br>
+&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(c,&nbsp;s)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;<span class="constructor">String</span>.length&nbsp;s&nbsp;&lt;&gt;&nbsp;c&nbsp;<span class="keyword">then</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>bin_recv&nbsp;(<span class="keywordsign">`</span>wrong_length&nbsp;(c,&nbsp;s)))<br>
+&nbsp;&nbsp;<span class="keyword">else</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;s<br>
 <br>
 </code></body></html>

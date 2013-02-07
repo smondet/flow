@@ -15,7 +15,7 @@
 <link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_base.double_bind</title>
 </head>
 <body>
-<code class="code"><span class="keyword">let</span>&nbsp;double_bind&nbsp;m&nbsp;~ok&nbsp;~error&nbsp;=&nbsp;<br>
+<code class="code"><span class="keyword">let</span>&nbsp;double_bind&nbsp;m&nbsp;~ok&nbsp;~error&nbsp;=<br>
 &nbsp;&nbsp;<span class="constructor">Lwt</span>.bind&nbsp;m&nbsp;(<span class="keyword">function</span><br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;ok&nbsp;o<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;e)</code></body></html>

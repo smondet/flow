@@ -16,6 +16,6 @@
 </head>
 <body>
 <code class="code"><span class="keyword">let</span>&nbsp;&nbsp;write_file&nbsp;file&nbsp;~content&nbsp;=<br>
-&nbsp;&nbsp;catch_io&nbsp;()&nbsp;~f:<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;catch_deferred&nbsp;<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;with_file&nbsp;~mode:output&nbsp;file&nbsp;(<span class="keyword">fun</span>&nbsp;i&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;write&nbsp;i&nbsp;content))<br>
 &nbsp;&nbsp;|!&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>write_file_error&nbsp;(file,&nbsp;e)))</code></body></html>

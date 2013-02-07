@@ -16,8 +16,7 @@
 <link title="Flow_io" rel="Chapter" href="Flow_io.html">
 <link title="Flow_list" rel="Chapter" href="Flow_list.html">
 <link title="Flow_net" rel="Chapter" href="Flow_net.html">
-<link title="Flow_system" rel="Chapter" href="Flow_system.html"><link title="Send and Receive Binary Messages " rel="Section" href="#3_SendandReceiveBinaryMessages">
-<link title="Whole Files" rel="Section" href="#3_WholeFiles">
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><link title="Whole Files" rel="Section" href="#3_WholeFiles">
 <link title="Access To Channels " rel="Section" href="#3_AccessToChannels">
 <link title="Biocaml/Crytokit-style Transforms" rel="Section" href="#3_BiocamlCrytokitstyleTransforms">
 <title>The Flow Monad Library : Flow.IO</title>
@@ -29,17 +28,6 @@
 <h1>Module <a href="type_Flow.IO.html">Flow.IO</a> (<a href="code_Flow.IO.html">.ml</a>)</h1>
 <pre><span class="keyword">module</span> IO: <code class="type">Flow_io</code></pre><hr width="100%">
 <br>
-<span id="3_SendandReceiveBinaryMessages"><h3>Send and Receive Binary Messages </h3></span><br>
-<pre><span id="VALmax_message_length"><span class="keyword">val</span> <a href="code_VALFlow_io.max_message_length.html">max_message_length</a></span> : <code class="type">int</code></pre><div class="info">
-The maximum message length (10 million bytes right now).<br>
-</div>
-<pre><span id="VALbin_send"><span class="keyword">val</span> <a href="code_VALFlow_io.bin_send.html">bin_send</a></span> : <code class="type">Lwt_io.output_channel -><br>       string -><br>       (unit, [> `bin_send of [> `exn of exn | `message_too_long of string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
-Write a message on an output channel (size: 32 bits big endian, string).<br>
-</div>
-<pre><span id="VALbin_recv"><span class="keyword">val</span> <a href="code_VALFlow_io.bin_recv.html">bin_recv</a></span> : <code class="type">Lwt_io.input_channel -><br>       (string, [> `bin_recv of [> `exn of exn | `wrong_length of int * string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
-Read a message sent by <code class="code">bin_send</code>.<br>
-</div>
-<br>
 <span id="3_WholeFiles"><h3>Whole Files</h3></span><br>
 <pre><span id="VALwrite_file"><span class="keyword">val</span> <a href="code_VALFlow_io.write_file.html">write_file</a></span> : <code class="type">string -><br>       content:string -> (unit, [> `write_file_error of string * exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Write a string to a file.<br>
@@ -49,7 +37,7 @@ Read a string from a file.<br>
 </div>
 <br>
 <span id="3_AccessToChannels"><h3>Access To Channels </h3></span><br>
-<pre><span id="VALwith_out_channel"><span class="keyword">val</span> <a href="code_VALFlow_io.with_out_channel.html">with_out_channel</a></span> : <code class="type">[ `channel of Lwt_io.output_channel | `file of string | `stdout | `strerr ] -><br>       ?buffer_size:int -><br>       f:(Lwt_io.output_channel -> ('a, [> `io_exn of exn ] as 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ('a, 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALwith_out_channel"><span class="keyword">val</span> <a href="code_VALFlow_io.with_out_channel.html">with_out_channel</a></span> : <code class="type">[ `channel of Lwt_io.output_channel | `file of string | `stderr | `stdout ] -><br>       ?buffer_size:int -><br>       f:(Lwt_io.output_channel -> ('a, [> `io_exn of exn ] as 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ('a, 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Run a function <code class="code">f</code> on an output channel, if the channel comes from
     a <code class="code"><span class="keywordsign">`</span>file f</code>, it will be closed before returning (in case of success,
     or error, but not for exceptions).<br>

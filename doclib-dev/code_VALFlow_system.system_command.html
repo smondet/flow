@@ -17,6 +17,6 @@
 <body>
 <code class="code"><span class="keyword">let</span>&nbsp;system_command&nbsp;s&nbsp;=<br>
 &nbsp;&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system_command_error&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e)))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;(catch_io&nbsp;()&nbsp;~f:<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.system&nbsp;s))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred&nbsp;<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.system&nbsp;s))<br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;ret&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;discriminate_process_status&nbsp;s&nbsp;ret</code></body></html>

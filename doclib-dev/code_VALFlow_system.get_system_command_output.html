@@ -17,15 +17,14 @@
 <body>
 <code class="code"><span class="keyword">let</span>&nbsp;get_system_command_output&nbsp;s&nbsp;=<br>
 &nbsp;&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system_command_error&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e)))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;(catch_io<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inprocess&nbsp;=&nbsp;<span class="constructor">Lwt_process</span>.(open_process_full&nbsp;(shell&nbsp;s))&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_list</span>.map_p&nbsp;<span class="constructor">Lwt_io</span>.read<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[inprocess<span class="keywordsign">#</span>stdout;&nbsp;inprocess<span class="keywordsign">#</span>stderr;&nbsp;]<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;output&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inprocess<span class="keywordsign">#</span>status&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;status&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(status,&nbsp;output))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(status,&nbsp;output)))<br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(ret,&nbsp;output)&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;discriminate_process_status&nbsp;s&nbsp;ret<br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>

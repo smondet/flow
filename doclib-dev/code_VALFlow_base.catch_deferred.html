@@ -12,12 +12,12 @@
 <link title="Flow_io" rel="Chapter" href="Flow_io.html">
 <link title="Flow_list" rel="Chapter" href="Flow_list.html">
 <link title="Flow_net" rel="Chapter" href="Flow_net.html">
-<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_base.catch_io</title>
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_base.catch_deferred</title>
 </head>
 <body>
-<code class="code"><span class="keyword">let</span>&nbsp;catch_io&nbsp;~f&nbsp;x&nbsp;=<br>
-&nbsp;&nbsp;<span class="constructor">Lwt</span>.catch&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;a_exn_m&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Lwt</span>.t&nbsp;=&nbsp;f&nbsp;x&nbsp;<span class="keyword">in</span><br>
+<code class="code"><span class="keyword">let</span>&nbsp;catch_deferred&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;<span class="constructor">Lwt</span>.catch<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;a_exn_m&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Lwt</span>.t&nbsp;=&nbsp;f&nbsp;()&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.bind&nbsp;a_exn_m&nbsp;(<span class="keyword">fun</span>&nbsp;x&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(<span class="constructor">Ok</span>&nbsp;x)))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(<span class="constructor">Error</span>&nbsp;e))</code></body></html>

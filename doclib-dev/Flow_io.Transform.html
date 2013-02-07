@@ -25,7 +25,7 @@
 <pre><span id="TYPEt"><span class="keyword">class type</span> <code class="type">[['input, 'output]]</code> <a href="Flow_io.Transform.t-c.html">t</a></span> = <code class="code"><span class="keyword">object</span></code> <a href="Flow_io.Transform.t-c.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
 Universal (buffered) transformation between streams.
 </div>
-<pre><span id="VALtransform_stream"><span class="keyword">val</span> <a href="code_VALFlow_io.Transform.transform_stream.html">transform_stream</a></span> : <code class="type">('a, 'b) <a href="Flow_io.Transform.t-c.html">t</a> -> 'a Lwt_stream.t -> 'b Lwt_stream.t</code></pre><div class="info">
+<pre><span id="VALto_stream_fun"><span class="keyword">val</span> <a href="code_VALFlow_io.Transform.to_stream_fun.html">to_stream_fun</a></span> : <code class="type">('a, 'b) <a href="Flow_io.Transform.t-c.html">t</a> -> 'a Lwt_stream.t -> 'b Lwt_stream.t</code></pre><div class="info">
 Use a transform to process a <code class="code"><span class="constructor">Lwt_stream</span>.t</code>.<br>
 </div>
 <pre><span id="VALfile_to_file"><span class="keyword">val</span> <a href="code_VALFlow_io.Transform.file_to_file.html">file_to_file</a></span> : <code class="type">(string, (string, 'error) Core.Result.t) <a href="Flow_io.Transform.t-c.html">t</a> -><br>       ?input_buffer_size:int -><br>       string -><br>       ?output_buffer_size:int -><br>       string -><br>       (unit,<br>        [> `transform of<br>             [> `io_exn of exn<br>              | `stopped_before_end_of_stream<br>              | `transform_error of 'error ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">

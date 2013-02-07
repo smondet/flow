@@ -20,6 +20,7 @@
 <link title="Generic Connection Handle" rel="Section" href="#3_GenericConnectionHandle">
 <link title="Client Connection" rel="Section" href="#3_ClientConnection">
 <link title="Server Establishment" rel="Section" href="#3_ServerEstablishment">
+<link title="Send and Receive Binary Messages " rel="Section" href="#3_SendandReceiveBinaryMessages">
 <title>The Flow Monad Library : Flow.Network</title>
 </head>
 <body>
@@ -40,7 +41,7 @@ Initialize the SSL library.<br>
 A connection is full duplex and can be shut down.<br>
 </div>
 
-<pre><span id="VALin_channel"><span class="keyword">val</span> <a href="code_VALFlow_net.in_channel.html">in_channel</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> Lwt_io.input_channel</code></pre><pre><span id="VALout_channel"><span class="keyword">val</span> <a href="code_VALFlow_net.out_channel.html">out_channel</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> Lwt_io.output_channel</code></pre><pre><span id="VALshutdown"><span class="keyword">val</span> <a href="code_VALFlow_net.shutdown.html">shutdown</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALin_channel"><span class="keyword">val</span> <a href="code_VALFlow_net.in_channel.html">in_channel</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> Lwt_io.input_channel</code></pre><pre><span id="VALout_channel"><span class="keyword">val</span> <a href="code_VALFlow_net.out_channel.html">out_channel</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> Lwt_io.output_channel</code></pre><pre><span id="VALshutdown"><span class="keyword">val</span> <a href="code_VALFlow_net.shutdown.html">shutdown</a></span> : <code class="type"><a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, [> `net_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Note that <code class="code">shutdown connection</code> closes the channels.<br>
 </div>
 <br>
@@ -50,12 +51,12 @@ Note that <code class="code">shutdown connection</code> closes the channels.<br>
 Specification of the kind of connection (for the function <code class="code">connect</code>).<br>
 </div>
 
-<pre><span id="VALconnect"><span class="keyword">val</span> <a href="code_VALFlow_net.connect.html">connect</a></span> : <code class="type">address:Lwt_unix.sockaddr -><br>       <a href="Flow_net.html#TYPEconnection_specification">connection_specification</a> -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a>, [> `io_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALconnect"><span class="keyword">val</span> <a href="code_VALFlow_net.connect.html">connect</a></span> : <code class="type">address:Lwt_unix.sockaddr -><br>       <a href="Flow_net.html#TYPEconnection_specification">connection_specification</a> -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a>, [> `net_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Connect to the server at <code class="code">address</code>.<br>
 </div>
 <br>
 <span id="3_ServerEstablishment"><h3>Server Establishment</h3></span><br>
-<pre><span id="VALplain_server"><span class="keyword">val</span> <a href="code_VALFlow_net.plain_server.html">plain_server</a></span> : <code class="type">?on_error:(([> `accept_exn of Core.Std.Exn.t<br>                    | `io_exn of exn<br>                    | `not_an_ssl_socket<br>                    | `tls_accept_error of exn ]<br>                   as 'errors) -><br>                  (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, 'errors) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `io_exn of exn | `socket_creation_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALplain_server"><span class="keyword">val</span> <a href="code_VALFlow_net.plain_server.html">plain_server</a></span> : <code class="type">?on_error:(([> `accept_exn of Core.Std.Exn.t<br>                    | `net_exn of exn<br>                    | `not_an_ssl_socket<br>                    | `tls_accept_error of exn ]<br>                   as 'errors) -><br>                  (unit, [> `net_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, 'errors) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `net_exn of exn | `socket_creation_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Start a “plain” TCP server on port <code class="code">port</code>. This function returns
     immediately, the “accept-loop” runs in <i>Lwt</i> threads.
 <p>
@@ -75,7 +76,7 @@ Start a “plain” TCP server on port <code class="code">port</code>. This func
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connection<span class="keywordsign">#</span>shutdown)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;</code><br>
 </div>
-<pre><span id="VALtls_server"><span class="keyword">val</span> <a href="code_VALFlow_net.tls_server.html">tls_server</a></span> : <code class="type">?on_error:(([> `accept_exn of Core.Std.Exn.t<br>                    | `io_exn of exn<br>                    | `not_an_ssl_socket<br>                    | `tls_accept_error of exn ]<br>                   as 'a) -><br>                  (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       cert_key:string * string -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, 'a) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `socket_creation_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALtls_server"><span class="keyword">val</span> <a href="code_VALFlow_net.tls_server.html">tls_server</a></span> : <code class="type">?on_error:(([> `accept_exn of Core.Std.Exn.t<br>                    | `net_exn of exn<br>                    | `not_an_ssl_socket<br>                    | `tls_accept_error of exn ]<br>                   as 'a) -><br>                  (unit, [> `net_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       cert_key:string * string -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, 'a) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `socket_creation_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Like <code class="code">plain_server</code> but with a TLS layer, the server will be
     authenticated with <code class="code">~cert_key:(<span class="string">"cert.crt"</span>, <span class="string">"k.key"</span>)</code>.<br>
 </div>
@@ -95,10 +96,21 @@ The different kinds of clients that a authenticating TLS server
     <code class="code"><span class="keywordsign">`</span>invalid_client <span class="keywordsign">`</span>wrong_certificate</code>.<br>
 </div>
 
-<pre><span id="VALauthenticating_tls_server"><span class="keyword">val</span> <a href="code_VALFlow_net.authenticating_tls_server.html">authenticating_tls_server</a></span> : <code class="type">ca_certificate:string -><br>       check_client_certificate:(Ssl.certificate -><br>                                 (<a href="Flow_net.html#TYPEclient_check_result">client_check_result</a>,<br>                                  [> `accept_exn of Core.Std.Exn.t<br>                                   | `io_exn of exn<br>                                   | `not_an_ssl_socket<br>                                   | `tls_accept_error of exn ]<br>                                  as 'a)<br>                                 <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ?on_error:('a -> (unit, [> `io_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       cert_key:string * string -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> <a href="Flow_net.html#TYPEclient_kind">client_kind</a> -> (unit, 'a) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `socket_creation_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALauthenticating_tls_server"><span class="keyword">val</span> <a href="code_VALFlow_net.authenticating_tls_server.html">authenticating_tls_server</a></span> : <code class="type">ca_certificate:string -><br>       check_client_certificate:(Ssl.certificate -><br>                                 (<a href="Flow_net.html#TYPEclient_check_result">client_check_result</a>,<br>                                  [> `accept_exn of Core.Std.Exn.t<br>                                   | `net_exn of exn<br>                                   | `not_an_ssl_socket<br>                                   | `tls_accept_error of exn ]<br>                                  as 'a)<br>                                 <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ?on_error:('a -> (unit, [> `net_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       cert_key:string * string -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> <a href="Flow_net.html#TYPEclient_kind">client_kind</a> -> (unit, 'a) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `socket_creation_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Start an authenticating TLS server,  the <code class="code">ca_certificate</code> is used to check
     client certificates, and the function <code class="code">check_client_certificate</code> to
     decide about the CA-validity of the certificate once it has been validated
     with respect to the TLS protocol.<br>
+</div>
+<br>
+<span id="3_SendandReceiveBinaryMessages"><h3>Send and Receive Binary Messages </h3></span><br>
+<pre><span id="VALmax_message_length"><span class="keyword">val</span> <a href="code_VALFlow_net.max_message_length.html">max_message_length</a></span> : <code class="type">int</code></pre><div class="info">
+The maximum message length (10 million bytes right now).<br>
+</div>
+<pre><span id="VALbin_send"><span class="keyword">val</span> <a href="code_VALFlow_net.bin_send.html">bin_send</a></span> : <code class="type">Lwt_io.output_channel -><br>       string -><br>       (unit, [> `bin_send of [> `exn of exn | `message_too_long of string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Write a message on an output channel (size: 32 bits big endian, string).<br>
+</div>
+<pre><span id="VALbin_recv"><span class="keyword">val</span> <a href="code_VALFlow_net.bin_recv.html">bin_recv</a></span> : <code class="type">Lwt_io.input_channel -><br>       (string, [> `bin_recv of [> `exn of exn | `wrong_length of int * string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Read a message sent by <code class="code">bin_send</code>.<br>
 </div>
 </body></html>

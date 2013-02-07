@@ -18,41 +18,9 @@
 <code class="code"><span class="keyword">open</span>&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span><br>
 <span class="keyword">open</span>&nbsp;<span class="constructor">Flow_base</span><br>
 <br>
-</code><table><tr><td></td><td><span class="comment">(******************************************************************************)</span></td></tr></table><code class="code"><br>
-<span class="comment">(*&nbsp;Binary&nbsp;Messages&nbsp;*)</span><br>
 <br>
-<span class="keyword">let</span>&nbsp;max_message_length&nbsp;=&nbsp;10_000_000<br>
-<br>
-<span class="keyword">let</span>&nbsp;bin_send&nbsp;oc&nbsp;msg&nbsp;=<br>
-&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;<span class="constructor">String</span>.length&nbsp;msg&nbsp;&gt;&nbsp;max_message_length&nbsp;<span class="keyword">then</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>bin_send&nbsp;(<span class="keywordsign">`</span>message_too_long&nbsp;msg))<br>
-&nbsp;&nbsp;<span class="keyword">else</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;catch_io&nbsp;msg<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~f:<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;s&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.<span class="constructor">BE</span>.write_int&nbsp;oc&nbsp;(<span class="constructor">String</span>.length&nbsp;s)&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.write&nbsp;oc&nbsp;s&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.flush&nbsp;oc)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;|!&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>bin_send&nbsp;(<span class="keywordsign">`</span>exn&nbsp;e)))<br>
-<br>
-<span class="keyword">let</span>&nbsp;bin_recv&nbsp;ic&nbsp;=<br>
-&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;io&nbsp;=<br>
-&nbsp;&nbsp;&nbsp;&nbsp;catch_io&nbsp;()&nbsp;~f:<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.<span class="constructor">BE</span>.read_int&nbsp;ic&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;c&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">if</span>&nbsp;max_message_length&nbsp;&gt;=&nbsp;c&nbsp;<span class="keywordsign">&amp;&amp;</span>&nbsp;c&nbsp;&gt;&nbsp;0&nbsp;<span class="keyword">then</span>&nbsp;(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;s&nbsp;=&nbsp;<span class="constructor">String</span>.make&nbsp;c&nbsp;<span class="string">'B'</span>&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.read_into_exactly&nbsp;ic&nbsp;s&nbsp;0&nbsp;c&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;s<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)&nbsp;<span class="keyword">else</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;<span class="string">""</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;s&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(c,s))&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;bind_on_error&nbsp;io&nbsp;(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>bin_recv&nbsp;(<span class="keywordsign">`</span>exn&nbsp;e)))<br>
-&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(c,&nbsp;s)&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;<span class="constructor">String</span>.length&nbsp;s&nbsp;&lt;&gt;&nbsp;c&nbsp;<span class="keyword">then</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>bin_recv&nbsp;(<span class="keywordsign">`</span>wrong_length&nbsp;(c,&nbsp;s)))<br>
-&nbsp;&nbsp;<span class="keyword">else</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;s<br>
+<span class="keyword">let</span>&nbsp;wrap_deferred_io&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;wrap_deferred&nbsp;~on_exn:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;e)&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;f&nbsp;())<br>
 <br>
 </code><table><tr><td></td><td><span class="comment">(******************************************************************************)</span></td></tr></table><code class="code"><br>
 <span class="comment">(*&nbsp;Channels&nbsp;*)</span><br>
@@ -60,23 +28,24 @@
 <span class="keyword">let</span>&nbsp;with_out_channel&nbsp;out&nbsp;?buffer_size&nbsp;~f&nbsp;=<br>
 &nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;out&nbsp;<span class="keyword">with</span><br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stdout&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;<span class="constructor">Lwt_io</span>.stdout<br>
-&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>strerr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;<span class="constructor">Lwt_io</span>.stderr<br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stderr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;<span class="constructor">Lwt_io</span>.stderr<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>channel&nbsp;c&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;c<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file&nbsp;file&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_io</span>.open_file&nbsp;~mode:<span class="constructor">Lwt_io</span>.output&nbsp;?buffer_size)&nbsp;file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.open_file&nbsp;~mode:<span class="constructor">Lwt_io</span>.output&nbsp;?buffer_size&nbsp;file)<br>
 &nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;outchan&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;<span class="keyword">begin</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;outchan<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;&lt;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;o<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;out&nbsp;<span class="keyword">with</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;e<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;e<br>
@@ -85,9 +54,9 @@
 &nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
 <span class="keyword">let</span>&nbsp;write&nbsp;out&nbsp;s&nbsp;=<br>
-&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_io</span>.fprint&nbsp;out)&nbsp;s<br>
+&nbsp;&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.fprint&nbsp;out&nbsp;s)<br>
 <br>
-<span class="keyword">let</span>&nbsp;flush&nbsp;out&nbsp;=&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.flush&nbsp;out<br>
+<span class="keyword">let</span>&nbsp;flush&nbsp;out&nbsp;=&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.flush&nbsp;out)<br>
 <br>
 <br>
 <span class="keyword">let</span>&nbsp;with_in_channel&nbsp;inspec&nbsp;?buffer_size&nbsp;~f&nbsp;=<br>
@@ -95,20 +64,21 @@
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stdin&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;<span class="constructor">Lwt_io</span>.stdin<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>channel&nbsp;c&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;c<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file&nbsp;file&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_io</span>.open_file&nbsp;~mode:<span class="constructor">Lwt_io</span>.input&nbsp;?buffer_size)&nbsp;file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.open_file&nbsp;~mode:<span class="constructor">Lwt_io</span>.input&nbsp;?buffer_size&nbsp;file)<br>
 &nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;inchan&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;<span class="keyword">begin</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;inchan<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;&lt;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;o<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;inspec&nbsp;<span class="keyword">with</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;e<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;e<br>
@@ -117,18 +87,18 @@
 &nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
 <span class="keyword">let</span>&nbsp;read&nbsp;?count&nbsp;i&nbsp;=<br>
-&nbsp;&nbsp;wrap_io&nbsp;(<span class="constructor">Lwt_io</span>.read&nbsp;?count)&nbsp;i<br>
+&nbsp;&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.read&nbsp;?count&nbsp;i)<br>
 <br>
 </code><table><tr><td></td><td><span class="comment">(******************************************************************************)</span></td></tr></table><code class="code"><br>
 <span class="comment">(*&nbsp;Whole&nbsp;Files&nbsp;*)</span><br>
 <br>
 <span class="keyword">let</span>&nbsp;&nbsp;write_file&nbsp;file&nbsp;~content&nbsp;=<br>
-&nbsp;&nbsp;catch_io&nbsp;()&nbsp;~f:<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;catch_deferred&nbsp;<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;with_file&nbsp;~mode:output&nbsp;file&nbsp;(<span class="keyword">fun</span>&nbsp;i&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;write&nbsp;i&nbsp;content))<br>
 &nbsp;&nbsp;|!&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>write_file_error&nbsp;(file,&nbsp;e)))<br>
 <br>
 <span class="keyword">let</span>&nbsp;read_file&nbsp;file&nbsp;=<br>
-&nbsp;&nbsp;catch_io&nbsp;()&nbsp;~f:<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;catch_deferred&nbsp;<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;with_file&nbsp;~mode:input&nbsp;file&nbsp;(<span class="keyword">fun</span>&nbsp;i&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;read&nbsp;i))<br>
 &nbsp;&nbsp;|!&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>read_file_error&nbsp;(file,&nbsp;e)))<br>
 <br>
@@ -147,7 +117,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;o<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>transform&nbsp;e)<br>
 <br>
-&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;transform_stream&nbsp;tr&nbsp;stream&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;to_stream_fun&nbsp;tr&nbsp;stream&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">open</span>&nbsp;<span class="constructor">Lwt</span>&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;loop_until_ready&nbsp;tr&nbsp;stream&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">match</span>&nbsp;tr<span class="keywordsign">#</span>next&nbsp;<span class="keyword">with</span><br>

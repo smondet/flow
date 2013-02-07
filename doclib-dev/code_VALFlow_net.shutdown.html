@@ -17,6 +17,6 @@
 <body>
 <code class="code"><span class="keyword">let</span>&nbsp;shutdown&nbsp;{tls_socket;&nbsp;inchan;&nbsp;outchan}&nbsp;=<br>
 &nbsp;&nbsp;<span class="constructor">Tls</span>.tls_shutdown&nbsp;tls_socket&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;inchan)&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;wrap_deferred_net&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.close&nbsp;outchan)&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;return&nbsp;()</code></body></html>

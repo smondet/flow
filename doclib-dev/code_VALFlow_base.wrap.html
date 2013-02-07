@@ -15,8 +15,8 @@
 <link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_base.wrap</title>
 </head>
 <body>
-<code class="code"><span class="keyword">let</span>&nbsp;wrap&nbsp;~on_exn&nbsp;~f&nbsp;x&nbsp;=<br>
-&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;caught&nbsp;=&nbsp;catch_io&nbsp;(<span class="keyword">fun</span>&nbsp;a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(f&nbsp;a))&nbsp;x&nbsp;<span class="keyword">in</span><br>
+<code class="code"><span class="keyword">let</span>&nbsp;wrap&nbsp;~on_exn&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;caught&nbsp;=&nbsp;catch_deferred&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(f&nbsp;()))&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;double_bind&nbsp;caught<br>
 &nbsp;&nbsp;&nbsp;&nbsp;~ok:return<br>
 &nbsp;&nbsp;&nbsp;&nbsp;~error:(<span class="keyword">fun</span>&nbsp;exn&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(on_exn&nbsp;exn))</code></body></html>

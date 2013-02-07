@@ -49,15 +49,15 @@ Do something on errors (generally in order to augment them).<br>
 <pre><span id="VALdouble_bind"><span class="keyword">val</span> <a href="code_VALFlow_base.double_bind.html">double_bind</a></span> : <code class="type">('a, 'b) <a href="Flow_base.html#TYPEt">t</a> -><br>       ok:('a -> ('c, 'd) <a href="Flow_base.html#TYPEt">t</a>) -><br>       error:('b -> ('c, 'd) <a href="Flow_base.html#TYPEt">t</a>) -> ('c, 'd) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
 Do something on both sides.<br>
 </div>
-<pre><span id="VALcatch_io"><span class="keyword">val</span> <a href="code_VALFlow_base.catch_io.html">catch_io</a></span> : <code class="type">f:('b -> 'a Lwt.t) -> 'b -> ('a, exn) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
-<code class="code">catch_io f x</code> uses <code class="code"><span class="constructor">Lwt</span>.catch</code> to catch all the
+<pre><span id="VALcatch_deferred"><span class="keyword">val</span> <a href="code_VALFlow_base.catch_deferred.html">catch_deferred</a></span> : <code class="type">(unit -> 'a Lwt.t) -> ('a, exn) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">catch_deferred f x</code> uses <code class="code"><span class="constructor">Lwt</span>.catch</code> to catch all the
     lwt-exceptions in the result.<br>
 </div>
-<pre><span id="VALwrap_io"><span class="keyword">val</span> <a href="code_VALFlow_base.wrap_io.html">wrap_io</a></span> : <code class="type">?on_exn:(exn -> ([> `io_exn of exn ] as 'c)) -><br>       f:('a -> 'b Lwt.t) -> 'a -> ('b, 'c) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
-Put any Lwt.t in a flow-monad like <code class="code">catch_io</code> but put the exception
+<pre><span id="VALwrap_deferred"><span class="keyword">val</span> <a href="code_VALFlow_base.wrap_deferred.html">wrap_deferred</a></span> : <code class="type">on_exn:(exn -> 'c) -> (unit -> 'b Lwt.t) -> ('b, 'c) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+Put any Lwt.t in a flow-monad like <code class="code">catch_deferred</code> but put the exception
     in a polymorphic variant (the default being <code class="code"><span class="keywordsign">`</span>io_exn e</code>).<br>
 </div>
-<pre><span id="VALwrap"><span class="keyword">val</span> <a href="code_VALFlow_base.wrap.html">wrap</a></span> : <code class="type">on_exn:(exn -> 'c) -> f:('a -> 'b) -> 'a -> ('b, 'c) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
+<pre><span id="VALwrap"><span class="keyword">val</span> <a href="code_VALFlow_base.wrap.html">wrap</a></span> : <code class="type">on_exn:(exn -> 'c) -> (unit -> 'b) -> ('b, 'c) <a href="Flow_base.html#TYPEt">t</a></code></pre><div class="info">
 Put any non-I/O function
     in a flow-monad and do “something” on the error.<br>
 </div>

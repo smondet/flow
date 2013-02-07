@@ -22,7 +22,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">method</span>&nbsp;next&nbsp;:&nbsp;[&nbsp;<span class="keywordsign">`</span>end_of_stream&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_ready&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>output&nbsp;<span class="keyword">of</span>&nbsp;<span class="keywordsign">'</span>output&nbsp;]<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">method</span>&nbsp;stop&nbsp;:&nbsp;unit<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;transform_stream&nbsp;:<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;to_stream_fun&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>b)&nbsp;<span class="constructor">Flow_io</span>.<span class="constructor">Transform</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Lwt_stream</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;<span class="constructor">Lwt_stream</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;file_to_file&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(string,&nbsp;(string,&nbsp;<span class="keywordsign">'</span>error)&nbsp;<span class="constructor">Core</span>.<span class="constructor">Result</span>.t)&nbsp;<span class="constructor">Flow_io</span>.<span class="constructor">Transform</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>

@@ -27,7 +27,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;o<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>transform&nbsp;e)<br>
 <br>
-&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;transform_stream&nbsp;tr&nbsp;stream&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;to_stream_fun&nbsp;tr&nbsp;stream&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">open</span>&nbsp;<span class="constructor">Lwt</span>&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;loop_until_ready&nbsp;tr&nbsp;stream&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">match</span>&nbsp;tr<span class="keywordsign">#</span>next&nbsp;<span class="keyword">with</span><br>

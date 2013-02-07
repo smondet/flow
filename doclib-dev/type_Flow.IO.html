@@ -16,32 +16,17 @@
 </head>
 <body>
 <code class="code"><span class="keyword">sig</span><br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;max_message_length&nbsp;:&nbsp;int<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bin_send&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.output_channel&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;(unit,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>bin_send&nbsp;<span class="keyword">of</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>message_too_long&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;])<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bin_recv&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.input_channel&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Lwt_io</span>.file_name,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>bin_recv&nbsp;<span class="keyword">of</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>wrong_length&nbsp;<span class="keyword">of</span>&nbsp;int&nbsp;*&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;]&nbsp;])<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;write_file&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;content:<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;(unit,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>write_file_error&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;*&nbsp;exn&nbsp;])&nbsp;<span class="constructor">Flow_base</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;content:string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(unit,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>write_file_error&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;exn&nbsp;])&nbsp;<span class="constructor">Flow_base</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;read_file&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Lwt_io</span>.file_name,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>read_file_error&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name&nbsp;*&nbsp;exn&nbsp;])<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(string,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>read_file_error&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;exn&nbsp;])&nbsp;<span class="constructor">Flow_base</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;with_out_channel&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>channel&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.output_channel<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.file_name<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stdout<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>strerr&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stderr<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stdout&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?buffer_size:int&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;f:(<span class="constructor">Lwt_io</span>.output_channel&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>a,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;]&nbsp;<span class="keyword">as</span>&nbsp;<span class="keywordsign">'</span>err)&nbsp;<span class="constructor">Flow_base</span>.t)&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>err)&nbsp;<span class="constructor">Flow_base</span>.t<br>
@@ -67,7 +52,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">method</span>&nbsp;next&nbsp;:&nbsp;[&nbsp;<span class="keywordsign">`</span>end_of_stream&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_ready&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>output&nbsp;<span class="keyword">of</span>&nbsp;<span class="keywordsign">'</span>output&nbsp;]<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">method</span>&nbsp;stop&nbsp;:&nbsp;unit<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;transform_stream&nbsp;:&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>b)&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Lwt_stream</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;<span class="constructor">Lwt_stream</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;to_stream_fun&nbsp;:&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>b)&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Lwt_stream</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;<span class="constructor">Lwt_stream</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;file_to_file&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Lwt_io</span>.file_name,&nbsp;(<span class="constructor">Lwt_io</span>.file_name,&nbsp;<span class="keywordsign">'</span>error)&nbsp;<span class="constructor">Core</span>.<span class="constructor">Result</span>.t)&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?input_buffer_size:int&nbsp;<span class="keywordsign">-&gt;</span><br>

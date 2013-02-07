@@ -12,10 +12,10 @@
 <link title="Flow_io" rel="Chapter" href="Flow_io.html">
 <link title="Flow_list" rel="Chapter" href="Flow_list.html">
 <link title="Flow_net" rel="Chapter" href="Flow_net.html">
-<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_io.Transform.transform_stream</title>
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_io.Transform.to_stream_fun</title>
 </head>
 <body>
-<code class="code"><span class="keyword">let</span>&nbsp;transform_stream&nbsp;tr&nbsp;stream&nbsp;=<br>
+<code class="code"><span class="keyword">let</span>&nbsp;to_stream_fun&nbsp;tr&nbsp;stream&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">open</span>&nbsp;<span class="constructor">Lwt</span>&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;loop_until_ready&nbsp;tr&nbsp;stream&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">match</span>&nbsp;tr<span class="keywordsign">#</span>next&nbsp;<span class="keyword">with</span><br>

@@ -16,4 +16,4 @@
 </head>
 <body>
 <code class="code"><span class="keyword">let</span>&nbsp;sleep&nbsp;f&nbsp;=<br>
-&nbsp;&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_unix</span>.sleep&nbsp;f</code></body></html>
+&nbsp;&nbsp;wrap_deferred_system&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.sleep&nbsp;f)</code></body></html>

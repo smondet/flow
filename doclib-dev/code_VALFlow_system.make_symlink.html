@@ -17,7 +17,8 @@
 <body>
 <code class="code"><span class="keyword">let</span>&nbsp;make_symlink&nbsp;~target&nbsp;~link_path&nbsp;=<br>
 &nbsp;&nbsp;bind_on_error<br>
-&nbsp;&nbsp;&nbsp;&nbsp;(wrap_io&nbsp;(<span class="constructor">Lwt_unix</span>.symlink&nbsp;target)&nbsp;link_path)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(wrap_deferred_system&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.symlink&nbsp;target&nbsp;link_path))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_symlink&nbsp;(target,&nbsp;link_path),&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>system_exn&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_symlink&nbsp;(target,&nbsp;link_path),&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span></code></body></html>

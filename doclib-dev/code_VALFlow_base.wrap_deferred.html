@@ -12,7 +12,11 @@
 <link title="Flow_io" rel="Chapter" href="Flow_io.html">
 <link title="Flow_list" rel="Chapter" href="Flow_list.html">
 <link title="Flow_net" rel="Chapter" href="Flow_net.html">
-<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_io.max_message_length</title>
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_base.wrap_deferred</title>
 </head>
 <body>
-<code class="code"><span class="keyword">let</span>&nbsp;max_message_length&nbsp;=&nbsp;10_000_000</code></body></html>
+<code class="code"><span class="keyword">let</span>&nbsp;wrap_deferred&nbsp;~on_exn&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;caught&nbsp;=&nbsp;catch_deferred&nbsp;f&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;double_bind&nbsp;caught<br>
+&nbsp;&nbsp;&nbsp;&nbsp;~ok:return<br>
+&nbsp;&nbsp;&nbsp;&nbsp;~error:(<span class="keyword">fun</span>&nbsp;exn&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(on_exn&nbsp;exn))</code></body></html>

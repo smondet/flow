@@ -15,4 +15,4 @@
 <link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_io.flush</title>
 </head>
 <body>
-<code class="code"><span class="keyword">let</span>&nbsp;flush&nbsp;out&nbsp;=&nbsp;wrap_io&nbsp;<span class="constructor">Lwt_io</span>.flush&nbsp;out</code></body></html>
+<code class="code"><span class="keyword">let</span>&nbsp;flush&nbsp;out&nbsp;=&nbsp;wrap_deferred_io&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_io</span>.flush&nbsp;out)</code></body></html>

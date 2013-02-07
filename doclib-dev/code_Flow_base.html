@@ -16,12 +16,12 @@
 </head>
 <body>
 <code class="code"><span class="keyword">open</span>&nbsp;<span class="constructor">Core</span>.<span class="constructor">Std</span><br>
-&nbsp;&nbsp;<br>
-<span class="keyword">include</span>&nbsp;&nbsp;<span class="constructor">Monad</span>.<span class="constructor">Make2</span>(<span class="keyword">struct</span>&nbsp;<br>
+<br>
+<span class="keyword">include</span>&nbsp;&nbsp;<span class="constructor">Monad</span>.<span class="constructor">Make2</span>(<span class="keyword">struct</span><br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>b)&nbsp;t&nbsp;=&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>b)&nbsp;<span class="constructor">Result</span>.t&nbsp;<span class="constructor">Lwt</span>.t<br>
 <br>
-&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;return&nbsp;x&nbsp;=&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(<span class="constructor">Ok</span>&nbsp;x)&nbsp;<br>
-&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;bind&nbsp;x&nbsp;f&nbsp;=&nbsp;<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;return&nbsp;x&nbsp;=&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(<span class="constructor">Ok</span>&nbsp;x)<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;bind&nbsp;x&nbsp;f&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.bind&nbsp;x&nbsp;(<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(<span class="constructor">Error</span>&nbsp;e)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;f&nbsp;o)<br>
@@ -35,31 +35,31 @@
 <span class="keyword">let</span>&nbsp;bind_on_error&nbsp;m&nbsp;~f&nbsp;=&nbsp;<span class="constructor">Lwt</span>.bind&nbsp;m&nbsp;(<span class="keyword">function</span><br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(<span class="constructor">Ok</span>&nbsp;o)<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(f&nbsp;e))<br>
-&nbsp;&nbsp;<br>
-<span class="keyword">let</span>&nbsp;double_bind&nbsp;m&nbsp;~ok&nbsp;~error&nbsp;=&nbsp;<br>
+<br>
+<span class="keyword">let</span>&nbsp;double_bind&nbsp;m&nbsp;~ok&nbsp;~error&nbsp;=<br>
 &nbsp;&nbsp;<span class="constructor">Lwt</span>.bind&nbsp;m&nbsp;(<span class="keyword">function</span><br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;ok&nbsp;o<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;e)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<br>
-<span class="keyword">let</span>&nbsp;catch_io&nbsp;~f&nbsp;x&nbsp;=<br>
-&nbsp;&nbsp;<span class="constructor">Lwt</span>.catch&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;a_exn_m&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Lwt</span>.t&nbsp;=&nbsp;f&nbsp;x&nbsp;<span class="keyword">in</span><br>
+<br>
+<span class="keyword">let</span>&nbsp;catch_deferred&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;<span class="constructor">Lwt</span>.catch<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;a_exn_m&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Lwt</span>.t&nbsp;=&nbsp;f&nbsp;()&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.bind&nbsp;a_exn_m&nbsp;(<span class="keyword">fun</span>&nbsp;x&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(<span class="constructor">Ok</span>&nbsp;x)))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(<span class="constructor">Error</span>&nbsp;e))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<br>
-<span class="keyword">let</span>&nbsp;wrap_io&nbsp;?(on_exn=<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;e)&nbsp;~f&nbsp;x&nbsp;=&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
-&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;caught&nbsp;=&nbsp;catch_io&nbsp;f&nbsp;x&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;double_bind&nbsp;caught<br>
-&nbsp;&nbsp;&nbsp;&nbsp;~ok:return<br>
-&nbsp;&nbsp;&nbsp;&nbsp;~error:(<span class="keyword">fun</span>&nbsp;exn&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(on_exn&nbsp;exn))&nbsp;<br>
 <br>
-<span class="keyword">let</span>&nbsp;wrap&nbsp;~on_exn&nbsp;~f&nbsp;x&nbsp;=<br>
-&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;caught&nbsp;=&nbsp;catch_io&nbsp;(<span class="keyword">fun</span>&nbsp;a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(f&nbsp;a))&nbsp;x&nbsp;<span class="keyword">in</span><br>
+<span class="keyword">let</span>&nbsp;wrap_deferred&nbsp;~on_exn&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;caught&nbsp;=&nbsp;catch_deferred&nbsp;f&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;double_bind&nbsp;caught<br>
 &nbsp;&nbsp;&nbsp;&nbsp;~ok:return<br>
 &nbsp;&nbsp;&nbsp;&nbsp;~error:(<span class="keyword">fun</span>&nbsp;exn&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(on_exn&nbsp;exn))<br>
-&nbsp;&nbsp;<br>
+<br>
+<span class="keyword">let</span>&nbsp;wrap&nbsp;~on_exn&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;caught&nbsp;=&nbsp;catch_deferred&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;(f&nbsp;()))&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;double_bind&nbsp;caught<br>
+&nbsp;&nbsp;&nbsp;&nbsp;~ok:return<br>
+&nbsp;&nbsp;&nbsp;&nbsp;~error:(<span class="keyword">fun</span>&nbsp;exn&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(on_exn&nbsp;exn))<br>
+<br>
 <span class="keyword">let</span>&nbsp;map_option:&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;f:(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>b,&nbsp;<span class="keywordsign">'</span>error)&nbsp;t)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>b&nbsp;option,&nbsp;<span class="keywordsign">'</span>error)&nbsp;t<br>
 &nbsp;&nbsp;=&nbsp;<span class="keyword">fun</span>&nbsp;o&nbsp;~f&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;o&nbsp;<span class="keyword">with</span><br>
@@ -69,7 +69,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;g&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(<span class="constructor">Some</span>&nbsp;g)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<br>
-<span class="keyword">let</span>&nbsp;of_result&nbsp;r&nbsp;=&nbsp;<span class="constructor">Lwt</span>.return&nbsp;r&nbsp;<br>
+<br>
+<span class="keyword">let</span>&nbsp;of_result&nbsp;r&nbsp;=&nbsp;<span class="constructor">Lwt</span>.return&nbsp;r<br>
 <br>
 </code></body></html>
