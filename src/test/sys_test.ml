@@ -9,6 +9,9 @@ let cmdf fmt =
     say "CMD: %S" s;
     System.system_command s) fmt
 
+let fail_test fmt =
+  ksprintf (fun s -> error (`failed_test s)) fmt
+
 let test_make_directory () =
   let tmp = Filename.temp_dir "sys_test_make_directory" "_dir" in
   ksprintf System.system_command "rm -fr %s" tmp
@@ -25,11 +28,11 @@ let test_make_directory () =
   end
   >>= fun () ->
   begin
-    System.make_directory tmp
+    System.make_directory ~parents:false tmp
     >>< begin function
-    | Ok () -> say "ERROR: This should have failed!!"; return ()
+    | Ok () -> fail_test "This should have failed make_directory ~parents:false"
     | Error (`system (`make_directory _, `already_exists)) -> return ()
-    | Error e -> say "ERROR: Got wrong error"; error e
+    | Error e -> error e
     end
   end
   >>= fun () ->
@@ -165,8 +168,13 @@ let test_remove style =
   say "test_remove: OK";
   return ()
 
-let fail_test fmt =
-  ksprintf (fun s -> error (`failed_test s)) fmt
+
+let check_error_file_exists name expected_path =
+  begin function
+  | Ok () -> fail_test "%s: default 'if_exists' should be `fail" name
+  | Error (`system (_, (`file_exists p))) when p = expected_path -> return ()
+  | Error e -> error e
+  end
 
 let test_copy style_in style_out =
   let out_dir =
@@ -183,6 +191,10 @@ let test_copy style_in style_out =
   System.make_directory in_dir >>= fun () ->
   System.make_directory out_dir >>= fun () ->
 
+  (******************)
+  (* Symbolic links *)
+  (******************)
+
   let test_symlink = Filename.concat in_dir "test_symlink" in
   System.make_symlink ~target:"/tmp/bouh" ~link_path:test_symlink
   >>= fun () ->
@@ -194,15 +206,26 @@ let test_copy style_in style_out =
   is_present ~and_matches:((=) (`symlink "/tmp/bouh")) expected_path
   >>= fun () ->
 
+  System.copy ~symlinks:`redo ~src:test_symlink (`into out_dir)
+  >>< check_error_file_exists "copy-redo-symlink" expected_path
+  >>= fun () ->
+
+  System.copy ~symlinks:`redo ~src:test_symlink ~if_exists:`overwrite (`into out_dir)
+  >>= fun () ->
+
   say "redo symlink %s as %s" test_symlink out_dir;
   let dst = Filename.concat out_dir "test_symlink_new" in
   System.copy ~symlinks:`redo ~src:test_symlink (`onto dst)
   >>= fun () ->
   is_present ~and_matches:((=) (`symlink "/tmp/bouh")) dst
   >>= fun () ->
-  System.remove dst (* we remove this one to be able to call find at the end *)
+  System.remove dst (* we remove this one to be able to compare with
+                       file_tree at the end *)
   >>= fun () ->
 
+  (**************************************)
+  (* Copying files (with various sizes) *)
+  (**************************************)
   let test_copy_file size =
     let test_reg_file = Filename.concat in_dir (sprintf "reg_file_%d" size) in
     let content = String.make size 'B' in
@@ -215,13 +238,26 @@ let test_copy style_in style_out =
     >>= fun () ->
     IO.read_file expected_path
     >>= fun content_got ->
-    if content_got = content then return ()
-    else
-      fail_test "contents of %s and %s are different" test_reg_file expected_path
+    begin
+      if content_got = content
+      then return ()
+      else
+        fail_test "contents of %s and %s are different"
+          test_reg_file expected_path
+    end
+    >>= fun () ->
+    System.copy ~src:test_reg_file (`into out_dir)
+    >>< check_error_file_exists "copy-file" expected_path
+    >>= fun () ->
+    (* This one should work: *)
+    System.copy ~if_exists:`overwrite ~src:test_reg_file (`into out_dir)
   in
   test_copy_file 200 >>= fun () ->
   test_copy_file 200_000 >>= fun () ->
 
+  (**************************************)
+  (* Copying full trees of files        *)
+  (**************************************)
   let subtree_path = Filename.concat in_dir "random_tree" in
   System.make_directory subtree_path
   >>= fun () ->
@@ -231,21 +267,91 @@ let test_copy style_in style_out =
   System.copy ~symlinks:`redo ~src:subtree_path (`into out_dir)
   >>= fun () ->
 
+  System.copy ~src:subtree_path (`into out_dir)
+  >>< check_error_file_exists "copy-whole-random-tree"
+    Filename.(concat out_dir "random_tree")
+  >>= fun () ->
 
-  System.file_tree ~follow_symlinks:false in_dir
-  >>= fun in_tree ->
+  (* The file_tree comparison mostly shows that the copy worked and that
+     the failing one did not add anything. *)
+  let compare_file_trees in_dir out_dir fmt =
+    System.file_tree ~follow_symlinks:false in_dir
+    >>= fun in_tree ->
+    System.file_tree ~follow_symlinks:false out_dir
+    >>= fun out_tree ->
+    begin match in_tree, out_tree with
+    | `node (inname, lin), `node (outname, lout)
+      when inname = Filename.basename in_dir
+      && outname = Filename.basename out_dir
+        && lin = lout ->
+      return ()
+    | _ ->
+      say "in_tree: %s" (Sexp.to_string_hum (System.sexp_of_file_tree in_tree));
+      say "out_tree: %s" (Sexp.to_string_hum (System.sexp_of_file_tree out_tree));
+      ksprintf (fun s -> fail_test "in_tree <> out_tree %s" s) fmt
+    end
+  in
+  compare_file_trees in_dir out_dir "after copy + copy-failure"
+  >>= fun () ->
+
+  (* `overwrite should succeed and leave exactly the same result. *)
+  System.copy ~if_exists:`overwrite ~symlinks:`redo ~src:subtree_path (`into out_dir)
+  >>= fun () ->
+  compare_file_trees in_dir out_dir "after overwriting"
+  >>= fun () ->
+
+  (* `update should add/overwrite files but not remove *)
+  System.file_tree ~follow_symlinks:false out_dir
+  >>= fun init_dir ->
+  System.remove subtree_path  >>= fun () ->
+  is_absent subtree_path >>= fun () ->
+  let another_directory = Filename.concat subtree_path "another_one" in
+  System.make_directory another_directory  >>= fun () ->
+  let one_file = Filename.concat another_directory "one_file" in
+  IO.write_file one_file ~content:"AAAA"
+  >>= fun () ->
+  let another_file = Filename.concat subtree_path "file" in
+  IO.write_file another_file ~content:"BBBB" >>= fun () ->
+  (* We now have:
+     subtree_path/another_one/one_file
+     subtree_path/file *)
+  System.file_tree ~follow_symlinks:false out_dir
+  >>= fun out_tree_before ->
+  System.copy ~if_exists:`update ~symlinks:`redo ~src:subtree_path (`into out_dir)
+  >>= fun () ->
   System.file_tree ~follow_symlinks:false out_dir
   >>= fun out_tree ->
-  begin match in_tree, out_tree with
-  | `node (inname, lin), `node (outname, lout)
-    when inname = Filename.basename in_dir
-    && outname = Filename.basename out_dir
-      && lin = lout ->
-    return ()
+  let rec path_list path tree =
+    match tree with
+    | `leaf (f, _) -> [Filename.concat path f]
+    | `node (n, l) ->
+      let now = Filename.concat path n in
+      now :: List.concat_map l ~f:(fun sub -> path_list now sub)
+  in
+  begin match out_tree_before, out_tree with
+  | `node (dir, content_before), `node (same, content_after) when dir = same ->
+    let paths_before = path_list "." out_tree_before in
+    let paths_after = path_list "." out_tree in
+    let check f =
+      match List.find paths_after (fun p -> Filename.basename p = f) with
+      | Some p -> return ()
+      | None -> fail_test "paths_after does not have %s" f
+    in
+    check  "another_one" >>= fun () ->
+    check  "one_file" >>= fun () ->
+    check  "file" >>= fun () ->
+    let included =
+      List.for_all paths_before (fun p -> List.mem paths_after p) in
+    if included then return ()
+    else (
+      say "old_paths:\n%s" (String.concat ~sep:"\n" paths_before);
+      say "new_paths:\n%s" (String.concat ~sep:"\n" paths_after);
+      fail_test "paths_before not-included-in paths_after"
+    )
   | _ ->
-    say "in_tree: %s" (Sexp.to_string_hum (System.sexp_of_file_tree in_tree));
+    say "out_tree_before: %s" (Sexp.to_string_hum (System.sexp_of_file_tree out_tree_before));
     say "out_tree: %s" (Sexp.to_string_hum (System.sexp_of_file_tree out_tree));
-    fail_test "in_tree <> out_tree"
+    fail_test "out_tree_before <> out_tree (copy `update)"
   end
   >>= fun () ->
 
@@ -309,6 +415,18 @@ let test_move style_in style_out =
   end
   >>= fun () ->
 
+
+  System.make_directory (Filename.concat in_dir "somedir")
+  >>= fun () ->
+  System.make_directory (Filename.concat out_dir "somedir")
+  >>= fun () ->
+  System.move (Filename.concat in_dir "somedir") (`into out_dir)
+  >>< check_error_file_exists "move should fail if exists"
+    (Filename.concat out_dir "somedir")
+  >>= fun () ->
+  System.move ~if_exists:`update ~src:(Filename.concat in_dir "somedir") (`into out_dir)
+  >>= fun () ->
+
   System.remove in_dir >>= fun () ->
   System.remove out_dir >>= fun () ->
   say "test_move: OK";
@@ -353,6 +471,7 @@ let () =
               | `remove of string | `list_directory of string ] *
                 [ `already_exists
                 | `file_not_found of string
+                | `not_a_directory of string
                 | `file_exists of string
                 | `wrong_path of string
                 | `wrong_file_kind of string *
