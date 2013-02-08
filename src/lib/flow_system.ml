@@ -210,7 +210,11 @@ let make_symlink ~target ~link_path =
     (wrap_deferred_system (fun () -> Lwt_unix.symlink target link_path))
     begin function
     | `system_exn e ->
-      error (`system (`make_symlink (target, link_path), `exn e))
+      begin match e with
+      | Unix.Unix_error (Unix.EEXIST, cmd, arg)  ->
+        error (`system (`make_symlink (target, link_path), `file_exists link_path))
+      | e -> error (`system (`make_symlink (target, link_path), `exn e))
+      end
     end
 
 type file_destination = [
@@ -222,7 +226,10 @@ let path_of_destination ~src ~dst =
   | `into p -> Filename.(concat p (basename src))
   | `onto p -> p
 
-let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src dst =
+let copy
+    ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000)
+    ?(if_exists=`fail)
+    ~src dst =
   let rec copy_aux ~src ~dst =
     file_info src
     >>= begin function
@@ -238,12 +245,23 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
       | `follow -> copy_aux ~src:content ~dst
       | `redo ->
         let link_path = path_of_destination ~src ~dst in
-        eprintf "make_symlink %s %s\n" content link_path;
+        begin match if_exists with
+        | `fail -> (* make_symlink already fails on existing files *)
+          return ()
+        | `overwrite
+        | `update -> remove link_path (* remove does not fail on missing files *)
+        end
+        >>= fun () ->
         make_symlink ~target:content ~link_path
       end
     | `regular_file _->
       let output_path = path_of_destination ~src ~dst in
-      IO.with_out_channel ~buffer_size (`overwrite_file output_path) ~f:(fun outchan ->
+      let open_spec =
+        match if_exists with
+        | `fail -> `create_file output_path
+        | `overwrite | `update -> `overwrite_file output_path
+      in
+      IO.with_out_channel ~buffer_size open_spec ~f:(fun outchan ->
         IO.with_in_channel ~buffer_size (`file src) ~f:(fun inchan ->
           let rec loop () =
             IO.read ~count:buffer_size inchan
@@ -257,7 +275,23 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
           loop ()))
     | `directory ->
       let new_dir = path_of_destination ~src ~dst in
-      make_directory new_dir
+      file_info new_dir
+      >>= begin function
+      | `absent ->
+        make_directory new_dir
+      | smth_else ->
+        begin match if_exists with
+        | `fail -> error (`file_exists new_dir)
+        | `overwrite ->
+          remove new_dir
+          >>= fun () ->
+          make_directory new_dir
+        | `update ->
+          if smth_else = `directory
+          then return ()
+          else error (`not_a_directory new_dir)
+        end
+      end
       >>= fun () ->
       let `stream next_dir = list_directory src in
       let rec loop () =
@@ -283,25 +317,37 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
     | `file_exists _
     | `wrong_path _
     | `file_not_found _
+    | `not_a_directory _
     | `wrong_file_kind _ as e -> error (`system (`copy src, e))
     | `system e -> error (`system e)
     end
 
-let move_in_same_device ~src dst =
+let move_in_same_device ?(if_exists=`fail) ~src dst =
   let real_dest = path_of_destination ~src ~dst in
+  begin match if_exists with
+  | `fail ->
+    file_info real_dest
+    >>= begin function
+    | `absent -> return ()
+    | _ -> error (`system (`move src, `file_exists real_dest))
+    end
+  | _ -> (* Unix.rename does overwriting *) return ()
+  end
+  >>= fun () ->
   Lwt.catch
     Lwt.(fun () -> Lwt_unix.rename src real_dest >>= fun () -> return (Ok `moved))
     begin function
     | Unix.Unix_error (Unix.EXDEV, cmd, arg)  -> return `must_copy
+    | Unix.Unix_error (Unix.ENOTEMPTY, cmd, arg)  -> return `must_copy
     | e -> error (`system (`move src, `exn e))
     end
 
-let move ?ignore_strange ?symlinks ?buffer_size ~src dst =
-  move_in_same_device ~src dst
+let move ?ignore_strange ?symlinks ?buffer_size ?if_exists ~src dst =
+  move_in_same_device ?if_exists ~src dst
   >>= begin function
   | `moved -> return ()
   | `must_copy ->
-    copy ~src ?buffer_size ?ignore_strange ?symlinks dst
+    copy ~src ?buffer_size ?ignore_strange ?symlinks ?if_exists dst
     >>= fun () ->
     remove src
   end

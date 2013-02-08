@@ -72,17 +72,22 @@ val list_directory: string ->
        (string option,
         [> `system of [> `list_directory of string ] * [> `exn of exn ] ]) t) ]
 
-(** Remove a file or a directory recursively. *)
+(** Remove a file or a directory recursively. [remove] does not fail
+    if the file does not exist.  *)
 val remove: string ->
   (unit,
    [> `system of [> `file_info of string
                  | `remove of string
                  | `list_directory of string ] * [> `exn of exn ] ]) t
 
-(** Make a symbolic link [link_path] pointing at [target]. *)
+(** Make a symbolic link [link_path] pointing at
+    [target]. [make_symlink] fails if the file [link_path] already
+    exists. *)
 val make_symlink: target:string -> link_path:string ->
   (unit,
-   [> `system of [> `make_symlink of string * string] * [> `exn of exn ] ]) t
+   [> `system of [> `make_symlink of string * string]
+     * [> `file_exists of string
+       | `exn of exn ] ]) t
 
 (** Specification of a “destination” for [copy] and [move]. *)
 type file_destination = [
@@ -106,6 +111,7 @@ val copy:
   ?ignore_strange:bool ->
   ?symlinks:[ `fail | `follow | `redo ] ->
   ?buffer_size:int ->
+  ?if_exists:[ `fail | `overwrite | `update ] ->
   src:string -> file_destination ->
   (unit,
    [> `system of
@@ -113,6 +119,7 @@ val copy:
        | `file_info of string
        | `list_directory of string
        | `make_symlink of string * string
+       | `remove of string
        | `make_directory of string ] *
          [> `already_exists
          | `exn of exn
@@ -120,6 +127,7 @@ val copy:
          | `wrong_path of string
          | `file_not_found of string
          | `wrong_access_rights of int
+         | `not_a_directory of string
          | `wrong_file_kind of
              string *
                [> `block_device | `character_device
@@ -129,9 +137,13 @@ val copy:
     return [`moved] if it does not work but [copy] could work
     (i.e. both paths are not in the same {i device}) return
     [`must_copy]. *)
-val move_in_same_device: src:string -> file_destination ->
+val move_in_same_device:
+  ?if_exists:[ `fail | `overwrite | `update ] ->
+  src:string -> file_destination ->
   ([ `moved | `must_copy ],
-   [> `system of [> `move of string ] * [> `exn of exn ] ]) t
+   [> `system of [> `move of string | `file_info of string ]
+     * [> `exn of exn
+       | `file_exists of string] ]) t
 
 (** Heavy-weight function trying to mimic the behavior the UNIX command “mv”
     (c.f. {{:http://www.openbsd.org/cgi-bin/cvsweb/src/bin/mv/mv.c?rev=1.35;content-type=text%2Fplain;only_with_tag=HEAD}mv.c}):
@@ -144,6 +156,7 @@ val move:
   ?ignore_strange:bool ->
   ?symlinks:[ `fail | `follow | `redo ] ->
   ?buffer_size:int ->
+  ?if_exists:[ `fail | `overwrite | `update ] ->
   src:string -> file_destination ->
   (unit,
    [> `system of
@@ -160,6 +173,7 @@ val move:
          | `wrong_path of string
          | `file_not_found of string
          | `wrong_access_rights of int
+         | `not_a_directory of string
          | `wrong_file_kind of
              string *
                [> `block_device | `character_device
