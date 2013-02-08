@@ -20,9 +20,16 @@ val read_file: string ->
     a [`file f], it will be closed before returning (in case of success,
     or error, but not for exceptions). *)
 val with_out_channel:
-  [ `channel of Lwt_io.output_channel | `file of string | `stdout | `stderr ] ->
   ?buffer_size:int ->
-  f:(Lwt_io.output_channel -> ('a, [> `io_exn of exn] as 'err) t) ->
+  f:(Lwt_io.output_channel ->
+     ('a,
+      [> `file_exists of string
+      | `io_exn of exn
+      | `wrong_path of string ] as 'err) t) ->
+  [ `append_to_file of string
+  | `create_file of string
+  | `overwrite_file of string
+  | `channel of Lwt_io.output_channel | `stderr | `stdout] ->
   ('a, 'err) t
 
 (** Safely call [Lwt_io.fprint]. *)

@@ -353,12 +353,16 @@ let () =
               | `remove of string | `list_directory of string ] *
                 [ `already_exists
                 | `file_not_found of string
+                | `file_exists of string
+                | `wrong_path of string
                 | `wrong_file_kind of string *
                     [ `block_device | `character_device | `fifo | `socket | `symlink of string ]
                 | `exn of exn | `wrong_access_rights of int ]
           | `failed_test of string
           | `write_file_error of string * exn
           | `read_file_error of string * exn
+          | `file_exists of string
+          | `wrong_path of string
           | `wrong_file_info of string *
               [ `absent
               | `block_device

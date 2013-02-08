@@ -243,7 +243,7 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
       end
     | `regular_file _->
       let output_path = path_of_destination ~src ~dst in
-      IO.with_out_channel ~buffer_size (`file output_path) ~f:(fun outchan ->
+      IO.with_out_channel ~buffer_size (`overwrite_file output_path) ~f:(fun outchan ->
         IO.with_in_channel ~buffer_size (`file src) ~f:(fun inchan ->
           let rec loop () =
             IO.read ~count:buffer_size inchan
@@ -280,6 +280,8 @@ let copy ?(ignore_strange=false) ?(symlinks=`fail) ?(buffer_size=64_000) ~src ds
   bind_on_error (copy_aux ~src ~dst)
     begin function
     | `io_exn e -> error (`system (`copy src, `exn e))
+    | `file_exists _
+    | `wrong_path _
     | `file_not_found _
     | `wrong_file_kind _ as e -> error (`system (`copy src, e))
     | `system e -> error (`system e)

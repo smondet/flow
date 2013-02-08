@@ -116,6 +116,8 @@ val copy:
        | `make_directory of string ] *
          [> `already_exists
          | `exn of exn
+         | `file_exists of string
+         | `wrong_path of string
          | `file_not_found of string
          | `wrong_access_rights of int
          | `wrong_file_kind of
@@ -154,6 +156,8 @@ val move:
        | `make_directory of string ] *
          [> `already_exists
          | `exn of exn
+         | `file_exists of string
+         | `wrong_path of string
          | `file_not_found of string
          | `wrong_access_rights of int
          | `wrong_file_kind of

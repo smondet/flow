@@ -65,8 +65,63 @@ let copy () =
   IO.with_in_channel (`file tmp) ~buffer_size:42 ~f:(fun i ->
     IO.read i
     >>= fun content ->
-    IO.with_out_channel (`stdout) (fun o ->
+    IO.with_out_channel (`stdout) ~f:(fun o ->
       ksprintf (IO.write o) "Content of %s is %S\n" tmp content))
+
+
+let fail_test fmt =
+  ksprintf (fun s -> error (`test_failed s)) fmt
+
+let fail_test_if cond fmt =
+  ksprintf (fun s ->
+    if cond then error (`test_failed s) else return ()) fmt
+
+let test_with_out_channel () =
+  let tmp = Filename.temp_file "io_test_with_out_channel" ".bin" in
+  IO.write_file tmp ~content:"A"
+  >>= fun () ->
+  IO.with_out_channel (`append_to_file tmp) ~f:(fun o ->
+    IO.write o "B")
+  >>= fun () ->
+  IO.read_file tmp
+  >>= fun content ->
+  fail_test_if (content <> "AB") "append_to_file"
+  >>= fun () ->
+  begin
+    IO.with_out_channel (`create_file tmp) ~f:(fun o ->
+      IO.write o "B")
+    >>< begin function
+    | Ok () -> fail_test "test_with_out_channel.create: could write in %s" tmp
+    | Error (`file_exists p) -> return ()
+    | Error (`io_exn e) ->
+      eprintf "io_exn: %s\n%!" Exn.(to_string e);
+      error (`io_exn e)
+    | Error e ->
+      error e
+    end
+  end
+  >>= fun () ->
+  System.remove tmp >>= fun () ->
+
+  IO.with_out_channel (`create_file tmp) ~f:(fun o ->
+    IO.write o "AB")
+  >>= fun () ->
+
+  IO.read_file tmp >>= fun content ->
+  fail_test_if (content <> "AB") "effectively create"
+  >>= fun () ->
+
+  IO.with_out_channel (`overwrite_file tmp) ~f:(fun o ->
+    IO.write o "CD")
+  >>= fun () ->
+
+  IO.read_file tmp >>= fun content ->
+  fail_test_if (content <> "CD") "overwrite_file"
+  >>= fun () ->
+
+  say "test_with_out_channel: OK";
+  return ()
+
 
 let main () =
   basic_file_to_file ()
@@ -74,14 +129,24 @@ let main () =
   basic_stream ()
   >>= fun () ->
   copy ()
+  >>= fun () ->
+  test_with_out_channel ()
 
 let () =
   let module E = struct
     type t = [
     | `io_exn of exn
     | `io_test_exn of exn
+    | `test_failed of string
     | `read_file_error of string * exn
     | `write_file_error of string * exn
+    | `file_exists of string
+    | `wrong_path of string
+    | `system of
+        [ `file_info of string
+        | `list_directory of string
+        | `remove of string ] *
+          [ `exn of exn ]
     | `transform of
         [ `io_exn of exn
         | `stopped_before_end_of_stream

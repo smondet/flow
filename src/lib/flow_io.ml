@@ -8,32 +8,51 @@ let wrap_deferred_io f =
 (******************************************************************************)
 (* Channels *)
 
-let with_out_channel out ?buffer_size ~f =
-  begin match out with
-  | `stdout -> return Lwt_io.stdout
-  | `stderr -> return Lwt_io.stderr
-  | `channel c -> return c
-  | `file file ->
-    wrap_deferred_io (fun () ->
-      Lwt_io.open_file ~mode:Lwt_io.output ?buffer_size file)
-  end
-  >>= fun outchan ->
+let with_out_channel ?buffer_size ~f out =
   begin
-    f outchan
-    >>< begin function
-    | Ok o ->
-      wrap_deferred_io (fun () -> Lwt_io.close outchan)
-      >>= fun () ->
-      return o
-    | Error e ->
-      begin match out with
-      | `file _ ->
+    let open_file ~flags file =
+      wrap_deferred_io (fun () ->
+        Lwt_io.open_file ~mode:Lwt_io.output ?buffer_size ~flags file)
+    in
+    begin match out with
+    | `stdout -> return Lwt_io.stdout
+    | `stderr -> return Lwt_io.stderr
+    | `channel c -> return c
+    | `append_to_file file ->
+      open_file ~flags:Unix.([ O_CREAT; O_WRONLY; O_APPEND ]) file
+    | `overwrite_file file ->
+      open_file ~flags:Unix.([ O_CREAT; O_WRONLY; O_TRUNC ]) file
+    | `create_file file ->
+      open_file ~flags:Unix.([ O_CREAT; O_WRONLY; O_EXCL ]) file
+    end
+    >>= fun outchan ->
+    begin
+      f outchan
+      >>< begin function
+      | Ok o ->
         wrap_deferred_io (fun () -> Lwt_io.close outchan)
-        >>= fun _ ->
-        error e
-      | _ -> error e
+        >>= fun () ->
+        return o
+      | Error e ->
+        begin match out with
+        | `append_to_file _
+        | `overwrite_file _
+        | `create_file _ ->
+          wrap_deferred_io (fun () -> Lwt_io.close outchan)
+          >>= fun _ ->
+          error e
+        | _ -> error e
+        end
       end
     end
+  end
+  >>< begin function
+  | Ok o -> return o
+  | Error (`io_exn (Unix.Unix_error (Unix.ENOENT, _, path))) ->
+    error (`wrong_path path)
+  | Error (`io_exn (Unix.Unix_error (Unix.EEXIST, _, path))) ->
+    error (`file_exists path)
+  | Error  e -> error e
   end
 
 let write out s =
