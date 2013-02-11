@@ -7,14 +7,14 @@ let say fmt =
 let cmdf fmt =
   ksprintf (fun s ->
     say "CMD: %S" s;
-    System.system_command s) fmt
+    System.Shell.do_or_fail s) fmt
 
 let fail_test fmt =
   ksprintf (fun s -> error (`failed_test s)) fmt
 
 let test_make_directory () =
   let tmp = Filename.temp_dir "sys_test_make_directory" "_dir" in
-  ksprintf System.system_command "rm -fr %s" tmp
+  ksprintf System.Shell.do_or_fail "rm -fr %s" tmp
   >>= fun () ->
   System.ensure_directory_path ~perm:0o777 tmp
   >>= fun () ->
@@ -39,16 +39,16 @@ let test_make_directory () =
   let path = Filename.concat tmp "some/very/long/path" in
   System.ensure_directory_path path
   >>= fun () ->
-  ksprintf System.system_command "find %s -type d" tmp
+  ksprintf System.Shell.do_or_fail "find %s -type d" tmp
   >>= fun () ->
   say "test_make_directory: OK";
   return ()
 
 let test_file_info () =
   let tmp = Filename.temp_dir "sys_test_file_info" "_dir" in
-  ksprintf System.system_command "cd %s && ln -s /tmp symlink_to_dir" tmp
+  ksprintf System.Shell.do_or_fail "cd %s && ln -s /tmp symlink_to_dir" tmp
   >>= fun () ->
-  ksprintf System.system_command "cd %s && ln -s /etc/passwd symlink_to_file" tmp
+  ksprintf System.Shell.do_or_fail "cd %s && ln -s /etc/passwd symlink_to_file" tmp
   >>= fun () ->
   let check ?follow_symlink matches path =
     System.file_info ?follow_symlink path
@@ -66,7 +66,7 @@ let test_file_info () =
   check ((=) `absent) "/sldkfjslakjfdlksj"
   >>= fun () ->
 
-  ksprintf System.system_command "ls -l %s " tmp
+  ksprintf System.Shell.do_or_fail "ls -l %s " tmp
   >>= fun () ->
   say "test_file_info: OK";
   return ()

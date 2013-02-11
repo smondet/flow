@@ -7,41 +7,50 @@ module IO = Flow_io
 let wrap_deferred_system f =
   wrap_deferred f ~on_exn:(fun e -> `system_exn e)
 
-let discriminate_process_status s ret =
-  begin match ret with
-  | Lwt_unix.WEXITED 0 -> return ()
-  | Lwt_unix.WEXITED n -> error (`system_command_error (s, `exited n))
-  | Lwt_unix.WSIGNALED n -> error (`system_command_error (s, `signaled n))
-  | Lwt_unix.WSTOPPED n -> error (`system_command_error (s, `stopped n))
-  end
+module Shell = struct
 
-let system_command s =
-  bind_on_error ~f:(fun e -> error (`system_command_error (s, `exn e)))
-    (catch_deferred Lwt_io.(fun () -> Lwt_unix.system s))
-  >>= fun ret ->
-  discriminate_process_status s ret
+  let discriminate_process_status s ret =
+    begin match ret with
+    | Lwt_unix.WEXITED 0 -> return ()
+    | Lwt_unix.WEXITED n -> error (`shell (s, `exited n))
+    | Lwt_unix.WSIGNALED n ->
+      error (`shell (s, `signaled (Signal.of_caml_int n)))
+    | Lwt_unix.WSTOPPED n -> error (`shell (s, `stopped n))
+    end
 
+  let do_or_fail s =
+    bind_on_error ~f:(fun e -> error (`shell (s, `exn e)))
+      (catch_deferred Lwt_io.(fun () -> Lwt_unix.system s))
+    >>= fun ret ->
+    discriminate_process_status s ret
+
+
+  let execute s =
+    bind_on_error
+      ~f:(fun e -> error (`shell (s, `exn e)))
+      (catch_deferred
+         Lwt.(fun () ->
+           let inprocess = Lwt_process.(open_process_full (shell s)) in
+           Lwt_list.map_p Lwt_io.read
+             [inprocess#stdout; inprocess#stderr; ]
+           >>= fun output ->
+           inprocess#status >>= fun status ->
+           return (status, output)))
+    >>= fun (ret, output) ->
+    let code =
+      match ret with
+      | Lwt_unix.WEXITED n ->   (`exited n)
+      | Lwt_unix.WSIGNALED n -> (`signaled (Signal.of_caml_int n))
+      | Lwt_unix.WSTOPPED n ->  (`stopped n)
+    in
+    begin match output with
+    | [out; err] -> return (out, err, code)
+    | _ -> assert false
+    end
+
+end
 let sleep f =
   wrap_deferred_system (fun () -> Lwt_unix.sleep f)
-
-
-let get_system_command_output s =
-  bind_on_error ~f:(fun e -> error (`system_command_error (s, `exn e)))
-    (catch_deferred
-       Lwt.(fun () ->
-         let inprocess = Lwt_process.(open_process_full (shell s)) in
-         Lwt_list.map_p Lwt_io.read
-           [inprocess#stdout; inprocess#stderr; ]
-         >>= fun output ->
-         inprocess#status >>= fun status ->
-         return (status, output)))
-  >>= fun (ret, output) ->
-  discriminate_process_status s ret
-  >>= fun () ->
-  begin match output with
-  | [out; err] -> return (out, err)
-  | _ -> assert false
-  end
 
 let with_timeout time ~f =
   Lwt.catch

@@ -7,20 +7,24 @@ open Flow_base
 (** Block for a given amount of seconds ([Lwt_unix.sleep]). *)
 val sleep: float -> (unit, [> `system_exn of exn ]) t
 
+(** Manipulate [/bin/sh] commands (flavors of [Unix.system]).  *)
+module Shell : sig
 
-(** Make [/bin/sh] execute a command. *)
-val system_command: string ->
-  (unit,
-   [> `system_command_error of string *
-       [> `exited of int | `exn of exn | `signaled of int | `stopped of int ]
-   ]) t
+  (** Make [/bin/sh] execute a command, fail if it does not return 0. *)
+  val do_or_fail: string ->
+    (unit,
+     [> `shell of string *
+         [> `exited of int | `exn of exn | `signaled of Signal.t | `stopped of int ]
+     ]) t
 
-(** Execute a shell command and return its [stdout, stderr]. *)
-val get_system_command_output: string ->
-  (string * string,
-   [> `system_command_error of string *
-       [> `exited of int | `exn of exn | `signaled of int | `stopped of int ]
-   ]) t
+  (** Execute a shell command and return its standard output, standard error,
+      and exit code
+      [stdout, stderr]. *)
+  val execute:
+    string ->
+    (string * string * [ `exited of int | `signaled of Signal.t | `stopped of int ],
+     [> `shell of string * [> `exn of exn ]]) t
+end
 
 (** Execute a function [f] with a timeout (in seconds). If [f] throws
     an exception it will be passed as [`system_exn e], if the functions
