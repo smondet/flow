@@ -16,10 +16,10 @@ let test_make_directory () =
   let tmp = Filename.temp_dir "sys_test_make_directory" "_dir" in
   ksprintf System.system_command "rm -fr %s" tmp
   >>= fun () ->
-  System.make_directory ~perm:0o777 tmp
+  System.ensure_directory_path ~perm:0o777 tmp
   >>= fun () ->
   begin
-    System.make_directory "/please_dont_run_tests_as_root"
+    System.ensure_directory_path "/please_dont_run_tests_as_root"
     >>< begin function
     | Ok () -> say "ERROR: This should have failed!!"; return ()
     | Error (`system (`make_directory _, `wrong_access_rights _)) -> return ()
@@ -28,7 +28,7 @@ let test_make_directory () =
   end
   >>= fun () ->
   begin
-    System.make_directory ~parents:false tmp
+    System.make_new_directory tmp
     >>< begin function
     | Ok () -> fail_test "This should have failed make_directory ~parents:false"
     | Error (`system (`make_directory _, `already_exists)) -> return ()
@@ -37,7 +37,7 @@ let test_make_directory () =
   end
   >>= fun () ->
   let path = Filename.concat tmp "some/very/long/path" in
-  System.make_directory path
+  System.ensure_directory_path path
   >>= fun () ->
   ksprintf System.system_command "find %s -type d" tmp
   >>= fun () ->
@@ -98,7 +98,7 @@ let random_tree path max_number_creations =
       begin match Random.int 3 with
       | 0 ->
         let p = path "dir" in
-        System.make_directory p
+        System.ensure_directory_path p
         >>= fun () ->
         random_tree_aux p
       | 1 ->
@@ -123,7 +123,7 @@ let test_remove style =
     | `absolute -> "/tmp/test_flow_system_remove" in
   cmdf "rm -fr %s" in_dir
   >>= fun () ->
-  System.make_directory in_dir
+  System.ensure_directory_path in_dir
   >>= fun () ->
   let test_regular = Filename.concat in_dir "reg_file" in
   IO.write_file test_regular ~content:"come content"
@@ -140,13 +140,13 @@ let test_remove style =
   is_absent test_regular
   >>= fun () ->
   let test_empty_dir = Filename.concat in_dir "empty_dir" in
-  System.make_directory test_empty_dir >>= fun () ->
+  System.ensure_directory_path test_empty_dir >>= fun () ->
   is_present test_empty_dir >>= fun () ->
   System.remove test_empty_dir >>= fun () ->
   is_absent test_empty_dir >>= fun () ->
   say "Removed %s" test_empty_dir;
   let test_non_empty_dir = Filename.concat in_dir "non_empty_dir" in
-  System.make_directory test_non_empty_dir >>= fun () ->
+  System.ensure_directory_path test_non_empty_dir >>= fun () ->
   random_tree test_non_empty_dir 100
   >>= fun () ->
   cmdf "find %s | wc -l" test_non_empty_dir
@@ -188,8 +188,8 @@ let test_copy style_in style_out =
   say "test_copy %s/… → %s/…" in_dir out_dir;
   cmdf "rm -fr %s" in_dir >>= fun () ->
   cmdf "rm -fr %s" out_dir >>= fun () ->
-  System.make_directory in_dir >>= fun () ->
-  System.make_directory out_dir >>= fun () ->
+  System.ensure_directory_path in_dir >>= fun () ->
+  System.ensure_directory_path out_dir >>= fun () ->
 
   (******************)
   (* Symbolic links *)
@@ -259,7 +259,7 @@ let test_copy style_in style_out =
   (* Copying full trees of files        *)
   (**************************************)
   let subtree_path = Filename.concat in_dir "random_tree" in
-  System.make_directory subtree_path
+  System.ensure_directory_path subtree_path
   >>= fun () ->
   random_tree subtree_path 20
   >>= fun () ->
@@ -306,7 +306,7 @@ let test_copy style_in style_out =
   System.remove subtree_path  >>= fun () ->
   is_absent subtree_path >>= fun () ->
   let another_directory = Filename.concat subtree_path "another_one" in
-  System.make_directory another_directory  >>= fun () ->
+  System.ensure_directory_path another_directory  >>= fun () ->
   let one_file = Filename.concat another_directory "one_file" in
   IO.write_file one_file ~content:"AAAA"
   >>= fun () ->
@@ -376,8 +376,8 @@ let test_move style_in style_out =
   say "test_move %s/… → %s/…" in_dir out_dir;
   cmdf "rm -fr %s" in_dir >>= fun () ->
   cmdf "rm -fr %s" out_dir >>= fun () ->
-  System.make_directory in_dir >>= fun () ->
-  System.make_directory out_dir >>= fun () ->
+  System.ensure_directory_path in_dir >>= fun () ->
+  System.ensure_directory_path out_dir >>= fun () ->
 
   let test_symlink = Filename.concat in_dir "test_symlink" in
   System.make_symlink ~target:"/tmp/bouh" ~link_path:test_symlink
@@ -390,7 +390,7 @@ let test_move style_in style_out =
   is_absent test_symlink >>= fun () ->
 
   let subtree_path = Filename.concat in_dir "random_tree" in
-  System.make_directory subtree_path >>= fun () ->
+  System.ensure_directory_path subtree_path >>= fun () ->
   random_tree subtree_path 20 >>= fun () ->
   System.file_tree ~follow_symlinks:false subtree_path
   >>= fun src_tree ->
@@ -416,9 +416,9 @@ let test_move style_in style_out =
   >>= fun () ->
 
 
-  System.make_directory (Filename.concat in_dir "somedir")
+  System.ensure_directory_path (Filename.concat in_dir "somedir")
   >>= fun () ->
-  System.make_directory (Filename.concat out_dir "somedir")
+  System.ensure_directory_path (Filename.concat out_dir "somedir")
   >>= fun () ->
   System.move (Filename.concat in_dir "somedir") (`into out_dir)
   >>< check_error_file_exists "move should fail if exists"

@@ -76,27 +76,26 @@ let mkdir_even_if_exists ?(perm=0o700) dirname =
     | e -> error (`system (`make_directory dirname, `exn e))
     end
 
-let make_directory ?perm ?(parents=true) dirname =
-  if parents then begin
-    (* Code inspired by Core.Std.Unix *)
-    let init, dirs =
-      match Filename.parts dirname with
-      | [] -> failwithf "Sys.mkdir_p: BUG! Filename.parts %s -> []" dirname ()
-      | init :: dirs -> (init, dirs)
-    in
-    mkdir_even_if_exists ?perm init
+let make_new_directory ?perm dirname =
+  mkdir_or_fail ?perm dirname
+  
+let ensure_directory_path ?perm dirname =
+  (* Code inspired by Core.Std.Unix *)
+  let init, dirs =
+    match Filename.parts dirname with
+    | [] -> failwithf "Sys.mkdir_p: BUG! Filename.parts %s -> []" dirname ()
+    | init :: dirs -> (init, dirs)
+  in
+  mkdir_even_if_exists ?perm init
+  >>= fun () ->
+  List.fold dirs ~init:(return init) ~f:(fun m part ->
+    m >>= fun previous ->
+    let dir = Filename.concat previous part in
+    mkdir_even_if_exists ?perm dir
     >>= fun () ->
-    List.fold dirs ~init:(return init) ~f:(fun m part ->
-      m >>= fun previous ->
-      let dir = Filename.concat previous part in
-      mkdir_even_if_exists ?perm dir
-      >>= fun () ->
       return dir)
-    >>= fun _ ->
-    return ()
-  end else begin
-    mkdir_or_fail ?perm dirname
-  end
+  >>= fun _ ->
+  return ()
 
 type file_info =
 [ `absent
@@ -278,14 +277,14 @@ let copy
       file_info new_dir
       >>= begin function
       | `absent ->
-        make_directory new_dir
+        make_new_directory new_dir
       | smth_else ->
         begin match if_exists with
         | `fail -> error (`file_exists new_dir)
         | `overwrite ->
           remove new_dir
           >>= fun () ->
-          make_directory new_dir
+          make_new_directory new_dir
         | `update ->
           if smth_else = `directory
           then return ()

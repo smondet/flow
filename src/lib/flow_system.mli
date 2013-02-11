@@ -22,24 +22,30 @@ val get_system_command_output: string ->
        [> `exited of int | `exn of exn | `signaled of int | `stopped of int ]
    ]) t
 
-val with_timeout : float ->
-  f:(unit -> ('a, [> `system_exn of exn | `timeout of float ] as 'b) t) ->
-  ('a, 'b) t
 (** Execute a function [f] with a timeout (in seconds). If [f] throws
     an exception it will be passed as [`system_exn e], if the functions
     timeouts the error will be [`timeout time]. *)
+val with_timeout : float ->
+  f:(unit -> ('a, [> `system_exn of exn | `timeout of float ] as 'b) t) ->
+  ('a, 'b) t
 
-(** Create a directory and its potential parents.
-    If [parents] is [true] (the {b default}) it is like [mkdir -p] and it
-    won't fail if the directory already exists.
-    If [parents] is [false], then it is like [mkdir] (fails on
-    existing directories).
+(** Create a new empty directory or fail if it already exists (i.e. like [mkdir])
+    and its potential parents.
     The default permissions are [0o700]. *)
-val make_directory: ?perm:int -> ?parents:bool -> string ->
+val make_new_directory: ?perm:int -> string ->
   (unit,
    [> `system of
        [> `make_directory of string ] *
          [> `already_exists | `exn of exn | `wrong_access_rights of int ] ]) t
+
+(** Create as many directories as needed (can be 0) to ensure that the
+    directory path exists (like [mkdir -p]). The default permissions
+    are [0o700].  *)
+val ensure_directory_path: ?perm:int -> string ->
+  (unit,
+   [> `system of
+       [> `make_directory of string ] *
+         [> `exn of exn | `wrong_access_rights of int ] ]) t
 
 (** Quick information on files. *)
 type file_info =
