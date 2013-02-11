@@ -432,6 +432,68 @@ let test_move style_in style_out =
   say "test_move: OK";
   return ()
 
+let test_shell () =
+  let silent fmt =
+    ksprintf (fun s ->
+      ksprintf System.Shell.do_or_fail "( %s ) > /dev/null 2>&1" s) fmt in
+  silent "ls /tmp"
+  >>= fun () ->
+
+  bind_on_error (silent "ls /some_big_path")
+    begin function
+    | `shell (_, `exited 2) -> return ()
+    | e -> error e
+    end
+  >>= fun () ->
+  
+  bind_on_error (silent "kill $$")
+    begin function
+    | `shell (_, `signaled s) when s = Signal.term -> return ()
+    | e -> error e
+    end
+  >>= fun () ->
+
+  bind_on_error (silent "kill -9 $$")
+    begin function
+    | `shell (_, `signaled s) when s = Signal.kill -> return ()
+    | e -> error e
+    end
+  >>= fun () ->
+
+
+  let check_output ~ok fmt =
+    ksprintf (fun s ->
+      System.Shell.execute s
+      >>= begin function
+      | (sin, sout, ex) when ok sin sout ex -> return ()
+      | (sin, sout, ex) ->
+        fail_test "output of 's /':\n%S\n%S\n%S" sin sout
+          (<:sexp_of< [ `exited of int | `signaled of Signal.t | `stopped of int ] >>
+              ex |! Sexp.to_string_hum)
+      end
+    ) fmt  in
+
+  check_output "ls /"
+    ~ok:(fun sin sout ex ->
+      ex = `exited 0 && sout = "" && String.length sin > 10)
+  >>= fun () ->
+
+  check_output "ls /some_big_path"
+    ~ok:(fun sin sout ex -> ex = `exited 2)
+  >>= fun () ->
+
+  check_output "kill -9 $$" ~ok:(fun _ _ ex -> ex = `signaled Signal.kill)
+  >>= fun () ->
+
+  check_output "echo 'bouh'; exit 2"
+    ~ok:(fun sin sout ex ->
+      ex = `exited 2
+      && sin = "bouh\n")
+  >>= fun () ->
+  
+  
+  say "test_shell: OK";
+  return ()
 
 let main () =
   say "sys_test: GO!";
@@ -453,6 +515,7 @@ let main () =
   test_move `absolute `absolute  >>= fun () ->
   test_move `absolute `relative  >>= fun () ->
   test_move `relative `absolute  >>= fun () ->
+  test_shell () >>= fun () ->
   say "sys_test: Successful End";
   return ()
 
@@ -491,11 +554,11 @@ let () =
               | `regular_file of int
               | `socket
               | `symlink of string ]
-          | `system_command_error of
+          | `shell of
               string *
                 [ `exited of int
                 | `exn of exn
-                | `signaled of int
+                | `signaled of Signal.t
                 | `stopped of int ]
           ]  >> e
        |! Sexp.to_string_hum)
