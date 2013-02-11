@@ -29,24 +29,23 @@
 <pre><span id="VALsleep"><span class="keyword">val</span> <a href="code_VALFlow_system.sleep.html">sleep</a></span> : <code class="type">float -> (unit, [> `system_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Block for a given amount of seconds (<code class="code"><span class="constructor">Lwt_unix</span>.sleep</code>).<br>
 </div>
-<pre><span id="VALsystem_command"><span class="keyword">val</span> <a href="code_VALFlow_system.system_command.html">system_command</a></span> : <code class="type">string -><br>       (unit,<br>        [> `system_command_error of<br>             string *<br>             [> `exited of int | `exn of exn | `signaled of int | `stopped of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
-Make <code class="code">/bin/sh</code> execute a command.<br>
-</div>
-<pre><span id="VALget_system_command_output"><span class="keyword">val</span> <a href="code_VALFlow_system.get_system_command_output.html">get_system_command_output</a></span> : <code class="type">string -><br>       (string * string,<br>        [> `system_command_error of<br>             string *<br>             [> `exited of int | `exn of exn | `signaled of int | `stopped of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
-Execute a shell command and return its <code class="code">stdout, stderr</code>.<br>
+<pre><span class="keyword">module</span> <a href="Flow_system.Shell.html">Shell</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_system.Shell.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Manipulate <code class="code">/bin/sh</code> commands (flavors of <code class="code"><span class="constructor">Unix</span>.system</code>).
 </div>
 <pre><span id="VALwith_timeout"><span class="keyword">val</span> <a href="code_VALFlow_system.with_timeout.html">with_timeout</a></span> : <code class="type">float -><br>       f:(unit -><br>          ('a, [> `system_exn of exn | `timeout of float ] as 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ('a, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Execute a function <code class="code">f</code> with a timeout (in seconds). If <code class="code">f</code> throws
     an exception it will be passed as <code class="code"><span class="keywordsign">`</span>system_exn e</code>, if the functions
     timeouts the error will be <code class="code"><span class="keywordsign">`</span>timeout time</code>.<br>
 </div>
-<pre><span id="VALmake_directory"><span class="keyword">val</span> <a href="code_VALFlow_system.make_directory.html">make_directory</a></span> : <code class="type">?perm:int -><br>       ?parents:bool -><br>       string -><br>       (unit,<br>        [> `system of<br>             [> `make_directory of string ] *<br>             [> `already_exists | `exn of exn | `wrong_access_rights of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
-Create a directory and its potential parents.
-    If <code class="code">parents</code> is <code class="code"><span class="keyword">true</span></code> (the <b>default</b>) it is like <code class="code">mkdir -p</code> and it
-    won't fail if the directory already exists.
-    If <code class="code">parents</code> is <code class="code"><span class="keyword">false</span></code>, then it is like <code class="code">mkdir</code> (fails on
-    existing directories).
+<pre><span id="VALmake_new_directory"><span class="keyword">val</span> <a href="code_VALFlow_system.make_new_directory.html">make_new_directory</a></span> : <code class="type">?perm:int -><br>       string -><br>       (unit,<br>        [> `system of<br>             [> `make_directory of string ] *<br>             [> `already_exists | `exn of exn | `wrong_access_rights of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Create a new empty directory or fail if it already exists (i.e. like <code class="code">mkdir</code>)
+    and its potential parents.
     The default permissions are <code class="code">0o700</code>.<br>
+</div>
+<pre><span id="VALensure_directory_path"><span class="keyword">val</span> <a href="code_VALFlow_system.ensure_directory_path.html">ensure_directory_path</a></span> : <code class="type">?perm:int -><br>       string -><br>       (unit,<br>        [> `system of<br>             [> `make_directory of string ] *<br>             [> `exn of exn | `wrong_access_rights of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Create as many directories as needed (can be 0) to ensure that the
+    directory path exists (like <code class="code">mkdir -p</code>). The default permissions
+    are <code class="code">0o700</code>.<br>
 </div>
 <pre><span id="TYPEfile_info"><span class="keyword">type</span> <code class="type"></code>file_info</span> = <code class="type">[ `absent<br>       | `block_device<br>       | `character_device<br>       | `directory<br>       | `fifo<br>       | `regular_file of int<br>       | `socket<br>       | `symlink of string ]</code> </pre>
 <div class="info">
@@ -64,17 +63,20 @@ Get all the children of a directory, through a <code class="code">next</code> st
     function.<br>
 </div>
 <pre><span id="VALremove"><span class="keyword">val</span> <a href="code_VALFlow_system.remove.html">remove</a></span> : <code class="type">string -><br>       (unit,<br>        [> `system of<br>             [> `file_info of string | `list_directory of string | `remove of string ] *<br>             [> `exn of exn ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
-Remove a file or a directory recursively.<br>
+Remove a file or a directory recursively. <code class="code">remove</code> does not fail
+    if the file does not exist.<br>
 </div>
-<pre><span id="VALmake_symlink"><span class="keyword">val</span> <a href="code_VALFlow_system.make_symlink.html">make_symlink</a></span> : <code class="type">target:string -><br>       link_path:string -><br>       (unit,<br>        [> `system of [> `make_symlink of string * string ] * [> `exn of exn ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
-Make a symbolic link <code class="code">link_path</code> pointing at <code class="code">target</code>.<br>
+<pre><span id="VALmake_symlink"><span class="keyword">val</span> <a href="code_VALFlow_system.make_symlink.html">make_symlink</a></span> : <code class="type">target:string -><br>       link_path:string -><br>       (unit,<br>        [> `system of<br>             [> `make_symlink of string * string ] *<br>             [> `exn of exn | `file_exists of string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+Make a symbolic link <code class="code">link_path</code> pointing at
+    <code class="code">target</code>. <code class="code">make_symlink</code> fails if the file <code class="code">link_path</code> already
+    exists.<br>
 </div>
 <pre><span id="TYPEfile_destination"><span class="keyword">type</span> <code class="type"></code>file_destination</span> = <code class="type">[ `into of string | `onto of string ]</code> </pre>
 <div class="info">
 Specification of a “destination” for <code class="code">copy</code> and <code class="code">move</code>.<br>
 </div>
 
-<pre><span id="VALcopy"><span class="keyword">val</span> <a href="code_VALFlow_system.copy.html">copy</a></span> : <code class="type">?ignore_strange:bool -><br>       ?symlinks:[ `fail | `follow | `redo ] -><br>       ?buffer_size:int -><br>       src:string -><br>       <a href="Flow_system.html#TYPEfile_destination">file_destination</a> -><br>       (unit,<br>        [> `system of<br>             [> `copy of string<br>              | `file_info of string<br>              | `list_directory of string<br>              | `make_directory of string<br>              | `make_symlink of string * string ] *<br>             [> `already_exists<br>              | `exn of exn<br>              | `file_not_found of string<br>              | `wrong_access_rights of int<br>              | `wrong_file_kind of<br>                  string *<br>                  [> `block_device<br>                   | `character_device<br>                   | `fifo<br>                   | `socket<br>                   | `symlink of string ] ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALcopy"><span class="keyword">val</span> <a href="code_VALFlow_system.copy.html">copy</a></span> : <code class="type">?ignore_strange:bool -><br>       ?symlinks:[ `fail | `follow | `redo ] -><br>       ?buffer_size:int -><br>       ?if_exists:[ `fail | `overwrite | `update ] -><br>       src:string -><br>       <a href="Flow_system.html#TYPEfile_destination">file_destination</a> -><br>       (unit,<br>        [> `system of<br>             [> `copy of string<br>              | `file_info of string<br>              | `list_directory of string<br>              | `make_directory of string<br>              | `make_symlink of string * string<br>              | `remove of string ] *<br>             [> `already_exists<br>              | `exn of exn<br>              | `file_exists of string<br>              | `file_not_found of string<br>              | `not_a_directory of string<br>              | `wrong_access_rights of int<br>              | `wrong_file_kind of<br>                  string *<br>                  [> `block_device<br>                   | `character_device<br>                   | `fifo<br>                   | `socket<br>                   | `symlink of string ]<br>              | `wrong_path of string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Copy files or directories (recursively).
 <p>
 
@@ -89,13 +91,13 @@ Copy files or directories (recursively).
     On can <code class="code"><span class="keywordsign">`</span>fail</code> on symbolic links, <code class="code"><span class="keywordsign">`</span>follow</code> them, or <code class="code"><span class="keywordsign">`</span>redo</code> a new
     symlink with the same target.<br>
 </div>
-<pre><span id="VALmove_in_same_device"><span class="keyword">val</span> <a href="code_VALFlow_system.move_in_same_device.html">move_in_same_device</a></span> : <code class="type">src:string -><br>       <a href="Flow_system.html#TYPEfile_destination">file_destination</a> -><br>       ([ `moved | `must_copy ],<br>        [> `system of [> `move of string ] * [> `exn of exn ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALmove_in_same_device"><span class="keyword">val</span> <a href="code_VALFlow_system.move_in_same_device.html">move_in_same_device</a></span> : <code class="type">?if_exists:[ `fail | `overwrite | `update ] -><br>       src:string -><br>       <a href="Flow_system.html#TYPEfile_destination">file_destination</a> -><br>       ([ `moved | `must_copy ],<br>        [> `system of<br>             [> `file_info of string | `move of string ] *<br>             [> `exn of exn | `file_exists of string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Try to move <code class="code">src</code> to <code class="code">dest</code> using <code class="code"><span class="constructor">Lwt_unix</span>.rename</code>, if it works,
     return <code class="code"><span class="keywordsign">`</span>moved</code> if it does not work but <code class="code">copy</code> could work
     (i.e. both paths are not in the same <i>device</i>) return
     <code class="code"><span class="keywordsign">`</span>must_copy</code>.<br>
 </div>
-<pre><span id="VALmove"><span class="keyword">val</span> <a href="code_VALFlow_system.move.html">move</a></span> : <code class="type">?ignore_strange:bool -><br>       ?symlinks:[ `fail | `follow | `redo ] -><br>       ?buffer_size:int -><br>       src:string -><br>       <a href="Flow_system.html#TYPEfile_destination">file_destination</a> -><br>       (unit,<br>        [> `system of<br>             [> `copy of string<br>              | `file_info of string<br>              | `list_directory of string<br>              | `make_directory of string<br>              | `make_symlink of string * string<br>              | `move of string<br>              | `remove of string ] *<br>             [> `already_exists<br>              | `exn of exn<br>              | `file_not_found of string<br>              | `wrong_access_rights of int<br>              | `wrong_file_kind of<br>                  string *<br>                  [> `block_device<br>                   | `character_device<br>                   | `fifo<br>                   | `socket<br>                   | `symlink of string ] ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<pre><span id="VALmove"><span class="keyword">val</span> <a href="code_VALFlow_system.move.html">move</a></span> : <code class="type">?ignore_strange:bool -><br>       ?symlinks:[ `fail | `follow | `redo ] -><br>       ?buffer_size:int -><br>       ?if_exists:[ `fail | `overwrite | `update ] -><br>       src:string -><br>       <a href="Flow_system.html#TYPEfile_destination">file_destination</a> -><br>       (unit,<br>        [> `system of<br>             [> `copy of string<br>              | `file_info of string<br>              | `list_directory of string<br>              | `make_directory of string<br>              | `make_symlink of string * string<br>              | `move of string<br>              | `remove of string ] *<br>             [> `already_exists<br>              | `exn of exn<br>              | `file_exists of string<br>              | `file_not_found of string<br>              | `not_a_directory of string<br>              | `wrong_access_rights of int<br>              | `wrong_file_kind of<br>                  string *<br>                  [> `block_device<br>                   | `character_device<br>                   | `fifo<br>                   | `socket<br>                   | `symlink of string ]<br>              | `wrong_path of string ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Heavy-weight function trying to mimic the behavior the UNIX command “mv”
     (c.f. <a href="http://www.openbsd.org/cgi-bin/cvsweb/src/bin/mv/mv.c?rev=1.35;content-type=text%2Fplain;only_with_tag=HEAD">mv.c</a>):
     it tries <code class="code">move_in_same_device</code> and if it returns <code class="code"><span class="keywordsign">`</span>must_copy</code> it

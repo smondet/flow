@@ -20,5 +20,9 @@
 &nbsp;&nbsp;&nbsp;&nbsp;(wrap_deferred_system&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.symlink&nbsp;target&nbsp;link_path))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>system_exn&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_symlink&nbsp;(target,&nbsp;link_path),&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;e&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Unix</span>.<span class="constructor">Unix_error</span>&nbsp;(<span class="constructor">Unix</span>.<span class="constructor">EEXIST</span>,&nbsp;cmd,&nbsp;arg)&nbsp;&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_symlink&nbsp;(target,&nbsp;link_path),&nbsp;<span class="keywordsign">`</span>file_exists&nbsp;link_path))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_symlink&nbsp;(target,&nbsp;link_path),&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span></code></body></html>

@@ -30,12 +30,12 @@
 <h1>Module <a href="type_Flow.Network.html">Flow.Network</a> (<a href="code_Flow.Network.html">.ml</a>)</h1>
 <pre><span class="keyword">module</span> Network: <code class="type">Flow_net</code></pre><hr width="100%">
 <br>
-<span id="3_TLSInitialization"><h3>TLS Initialization</h3></span><br>
+<h3 id="3_TLSInitialization">TLS Initialization</h3><br>
 <pre><span id="VALinit_tls"><span class="keyword">val</span> <a href="code_VALFlow_net.init_tls.html">init_tls</a></span> : <code class="type">unit -> unit</code></pre><div class="info">
 Initialize the SSL library.<br>
 </div>
 <br>
-<span id="3_GenericConnectionHandle"><h3>Generic Connection Handle</h3></span><br>
+<h3 id="3_GenericConnectionHandle">Generic Connection Handle</h3><br>
 <pre><span id="TYPEconnection"><span class="keyword">type</span> <code class="type"></code>connection</span> </pre>
 <div class="info">
 A connection is full duplex and can be shut down.<br>
@@ -45,7 +45,7 @@ A connection is full duplex and can be shut down.<br>
 Note that <code class="code">shutdown connection</code> closes the channels.<br>
 </div>
 <br>
-<span id="3_ClientConnection"><h3>Client Connection</h3></span><br>
+<h3 id="3_ClientConnection">Client Connection</h3><br>
 <pre><span id="TYPEconnection_specification"><span class="keyword">type</span> <code class="type"></code>connection_specification</span> = <code class="type">[ `plain<br>       | `tls of<br>           [ `anonymous | `with_certificate of string * string ] *<br>           [ `allow_self_signed | `verify_server ] ]</code> </pre>
 <div class="info">
 Specification of the kind of connection (for the function <code class="code">connect</code>).<br>
@@ -55,7 +55,7 @@ Specification of the kind of connection (for the function <code class="code">con
 Connect to the server at <code class="code">address</code>.<br>
 </div>
 <br>
-<span id="3_ServerEstablishment"><h3>Server Establishment</h3></span><br>
+<h3 id="3_ServerEstablishment">Server Establishment</h3><br>
 <pre><span id="VALplain_server"><span class="keyword">val</span> <a href="code_VALFlow_net.plain_server.html">plain_server</a></span> : <code class="type">?on_error:(([> `accept_exn of Core.Std.Exn.t<br>                    | `net_exn of exn<br>                    | `not_an_ssl_socket<br>                    | `tls_accept_error of exn ]<br>                   as 'errors) -><br>                  (unit, [> `net_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, 'errors) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `net_exn of exn | `socket_creation_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Start a “plain” TCP server on port <code class="code">port</code>. This function returns
     immediately, the “accept-loop” runs in <i>Lwt</i> threads.
@@ -68,13 +68,13 @@ Start a “plain” TCP server on port <code class="code">port</code>. This func
     <code class="code">on_error</code> function itself will be ignored).
 <p>
 
-    Example: <code class="code">&nbsp;&nbsp;&nbsp;&nbsp;plain_server&nbsp;~port:4242<br>
+    Example: <pre class="codepre"><code class="code">&nbsp;&nbsp;&nbsp;&nbsp;plain_server&nbsp;~port:4242<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~on_error:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;logf&nbsp;<span class="string">"Error:&nbsp;%s"</span>&nbsp;(string_of_error&nbsp;e))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;connection&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base_io</span>.bin_send&nbsp;connection<span class="keywordsign">#</span>out_channel&nbsp;<span class="string">"Hello&nbsp;!!"</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connection<span class="keywordsign">#</span>shutdown)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;</code><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</code></pre><br>
 </div>
 <pre><span id="VALtls_server"><span class="keyword">val</span> <a href="code_VALFlow_net.tls_server.html">tls_server</a></span> : <code class="type">?on_error:(([> `accept_exn of Core.Std.Exn.t<br>                    | `net_exn of exn<br>                    | `not_an_ssl_socket<br>                    | `tls_accept_error of exn ]<br>                   as 'a) -><br>                  (unit, [> `net_exn of exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       port:int -><br>       cert_key:string * string -><br>       (<a href="Flow_net.html#TYPEconnection">connection</a> -> (unit, 'a) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       (unit, [> `socket_creation_exn of exn | `tls_context_exn of exn ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Like <code class="code">plain_server</code> but with a TLS layer, the server will be
@@ -103,7 +103,7 @@ Start an authenticating TLS server,  the <code class="code">ca_certificate</code
     with respect to the TLS protocol.<br>
 </div>
 <br>
-<span id="3_SendandReceiveBinaryMessages"><h3>Send and Receive Binary Messages </h3></span><br>
+<h3 id="3_SendandReceiveBinaryMessages">Send and Receive Binary Messages </h3><br>
 <pre><span id="VALmax_message_length"><span class="keyword">val</span> <a href="code_VALFlow_net.max_message_length.html">max_message_length</a></span> : <code class="type">int</code></pre><div class="info">
 The maximum message length (10 million bytes right now).<br>
 </div>

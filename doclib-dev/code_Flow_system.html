@@ -24,41 +24,50 @@
 <span class="keyword">let</span>&nbsp;wrap_deferred_system&nbsp;f&nbsp;=<br>
 &nbsp;&nbsp;wrap_deferred&nbsp;f&nbsp;~on_exn:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">`</span>system_exn&nbsp;e)<br>
 <br>
-<span class="keyword">let</span>&nbsp;discriminate_process_status&nbsp;s&nbsp;ret&nbsp;=<br>
-&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;ret&nbsp;<span class="keyword">with</span><br>
-&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WEXITED</span>&nbsp;0&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;()<br>
-&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WEXITED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system_command_error&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exited&nbsp;n))<br>
-&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSIGNALED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system_command_error&nbsp;(s,&nbsp;<span class="keywordsign">`</span>signaled&nbsp;n))<br>
-&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSTOPPED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system_command_error&nbsp;(s,&nbsp;<span class="keywordsign">`</span>stopped&nbsp;n))<br>
-&nbsp;&nbsp;<span class="keyword">end</span><br>
+<span class="keyword">module</span>&nbsp;<span class="constructor">Shell</span>&nbsp;=&nbsp;<span class="keyword">struct</span><br>
 <br>
-<span class="keyword">let</span>&nbsp;system_command&nbsp;s&nbsp;=<br>
-&nbsp;&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system_command_error&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e)))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred&nbsp;<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.system&nbsp;s))<br>
-&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;ret&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;discriminate_process_status&nbsp;s&nbsp;ret<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;discriminate_process_status&nbsp;s&nbsp;ret&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;ret&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WEXITED</span>&nbsp;0&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WEXITED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exited&nbsp;n))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSIGNALED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>signaled&nbsp;(<span class="constructor">Signal</span>.of_caml_int&nbsp;n)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSTOPPED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>stopped&nbsp;n))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;do_or_fail&nbsp;s&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred&nbsp;<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.system&nbsp;s))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;ret&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;discriminate_process_status&nbsp;s&nbsp;ret<br>
+<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;execute&nbsp;s&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bind_on_error<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inprocess&nbsp;=&nbsp;<span class="constructor">Lwt_process</span>.(open_process_full&nbsp;(shell&nbsp;s))&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_list</span>.map_p&nbsp;<span class="constructor">Lwt_io</span>.read<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[inprocess<span class="keywordsign">#</span>stdout;&nbsp;inprocess<span class="keywordsign">#</span>stderr;&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;output&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inprocess<span class="keywordsign">#</span>status&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;status&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(status,&nbsp;output)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(ret,&nbsp;output)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;code&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">match</span>&nbsp;ret&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WEXITED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;&nbsp;&nbsp;(<span class="keywordsign">`</span>exited&nbsp;n)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSIGNALED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">`</span>signaled&nbsp;(<span class="constructor">Signal</span>.of_caml_int&nbsp;n))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSTOPPED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;&nbsp;(<span class="keywordsign">`</span>stopped&nbsp;n)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;output&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;[out;&nbsp;err]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;(out,&nbsp;err,&nbsp;code)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keyword">assert</span>&nbsp;<span class="keyword">false</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+<br>
+<span class="keyword">end</span><br>
 <span class="keyword">let</span>&nbsp;sleep&nbsp;f&nbsp;=<br>
 &nbsp;&nbsp;wrap_deferred_system&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.sleep&nbsp;f)<br>
-<br>
-<br>
-<span class="keyword">let</span>&nbsp;get_system_command_output&nbsp;s&nbsp;=<br>
-&nbsp;&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system_command_error&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e)))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inprocess&nbsp;=&nbsp;<span class="constructor">Lwt_process</span>.(open_process_full&nbsp;(shell&nbsp;s))&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_list</span>.map_p&nbsp;<span class="constructor">Lwt_io</span>.read<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[inprocess<span class="keywordsign">#</span>stdout;&nbsp;inprocess<span class="keywordsign">#</span>stderr;&nbsp;]<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;output&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inprocess<span class="keywordsign">#</span>status&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;status&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(status,&nbsp;output)))<br>
-&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(ret,&nbsp;output)&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;discriminate_process_status&nbsp;s&nbsp;ret<br>
-&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;output&nbsp;<span class="keyword">with</span><br>
-&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;[out;&nbsp;err]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;(out,&nbsp;err)<br>
-&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keyword">assert</span>&nbsp;<span class="keyword">false</span><br>
-&nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
 <span class="keyword">let</span>&nbsp;with_timeout&nbsp;time&nbsp;~f&nbsp;=<br>
 &nbsp;&nbsp;<span class="constructor">Lwt</span>.catch<br>
@@ -93,27 +102,26 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_directory&nbsp;dirname,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
-<span class="keyword">let</span>&nbsp;make_directory&nbsp;?perm&nbsp;?(parents=<span class="keyword">true</span>)&nbsp;dirname&nbsp;=<br>
-&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;parents&nbsp;<span class="keyword">then</span>&nbsp;<span class="keyword">begin</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Code&nbsp;inspired&nbsp;by&nbsp;Core.Std.Unix&nbsp;*)</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;init,&nbsp;dirs&nbsp;=<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">match</span>&nbsp;<span class="constructor">Filename</span>.parts&nbsp;dirname&nbsp;<span class="keyword">with</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;[]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;failwithf&nbsp;<span class="string">"Sys.mkdir_p:&nbsp;BUG!&nbsp;Filename.parts&nbsp;%s&nbsp;-&gt;&nbsp;[]"</span>&nbsp;dirname&nbsp;()<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;init&nbsp;::&nbsp;dirs&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(init,&nbsp;dirs)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;mkdir_even_if_exists&nbsp;?perm&nbsp;init<br>
+<span class="keyword">let</span>&nbsp;make_new_directory&nbsp;?perm&nbsp;dirname&nbsp;=<br>
+&nbsp;&nbsp;mkdir_or_fail&nbsp;?perm&nbsp;dirname<br>
+&nbsp;&nbsp;<br>
+<span class="keyword">let</span>&nbsp;ensure_directory_path&nbsp;?perm&nbsp;dirname&nbsp;=<br>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;Code&nbsp;inspired&nbsp;by&nbsp;Core.Std.Unix&nbsp;*)</span><br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;init,&nbsp;dirs&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">match</span>&nbsp;<span class="constructor">Filename</span>.parts&nbsp;dirname&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;[]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;failwithf&nbsp;<span class="string">"Sys.mkdir_p:&nbsp;BUG!&nbsp;Filename.parts&nbsp;%s&nbsp;-&gt;&nbsp;[]"</span>&nbsp;dirname&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;init&nbsp;::&nbsp;dirs&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(init,&nbsp;dirs)<br>
+&nbsp;&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;mkdir_even_if_exists&nbsp;?perm&nbsp;init<br>
+&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;<span class="constructor">List</span>.fold&nbsp;dirs&nbsp;~init:(return&nbsp;init)&nbsp;~f:(<span class="keyword">fun</span>&nbsp;m&nbsp;part&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;m&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;previous&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;dir&nbsp;=&nbsp;<span class="constructor">Filename</span>.concat&nbsp;previous&nbsp;part&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;mkdir_even_if_exists&nbsp;?perm&nbsp;dir<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">List</span>.fold&nbsp;dirs&nbsp;~init:(return&nbsp;init)&nbsp;~f:(<span class="keyword">fun</span>&nbsp;m&nbsp;part&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;previous&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;dir&nbsp;=&nbsp;<span class="constructor">Filename</span>.concat&nbsp;previous&nbsp;part&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mkdir_even_if_exists&nbsp;?perm&nbsp;dir<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;dir)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;()<br>
-&nbsp;&nbsp;<span class="keyword">end</span>&nbsp;<span class="keyword">else</span>&nbsp;<span class="keyword">begin</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;mkdir_or_fail&nbsp;?perm&nbsp;dirname<br>
-&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;return&nbsp;()<br>
 <br>
 <span class="keyword">type</span>&nbsp;file_info&nbsp;=<br>
 [&nbsp;<span class="keywordsign">`</span>absent<br>
@@ -227,7 +235,11 @@
 &nbsp;&nbsp;&nbsp;&nbsp;(wrap_deferred_system&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.symlink&nbsp;target&nbsp;link_path))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>system_exn&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_symlink&nbsp;(target,&nbsp;link_path),&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;e&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Unix</span>.<span class="constructor">Unix_error</span>&nbsp;(<span class="constructor">Unix</span>.<span class="constructor">EEXIST</span>,&nbsp;cmd,&nbsp;arg)&nbsp;&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_symlink&nbsp;(target,&nbsp;link_path),&nbsp;<span class="keywordsign">`</span>file_exists&nbsp;link_path))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>make_symlink&nbsp;(target,&nbsp;link_path),&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
 <span class="keyword">type</span>&nbsp;file_destination&nbsp;=&nbsp;[<br>
@@ -239,7 +251,10 @@
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>into&nbsp;p&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Filename</span>.(concat&nbsp;p&nbsp;(basename&nbsp;src))<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>onto&nbsp;p&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;p<br>
 <br>
-<span class="keyword">let</span>&nbsp;copy&nbsp;?(ignore_strange=<span class="keyword">false</span>)&nbsp;?(symlinks=<span class="keywordsign">`</span>fail)&nbsp;?(buffer_size=64_000)&nbsp;~src&nbsp;dst&nbsp;=<br>
+<span class="keyword">let</span>&nbsp;copy<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?(ignore_strange=<span class="keyword">false</span>)&nbsp;?(symlinks=<span class="keywordsign">`</span>fail)&nbsp;?(buffer_size=64_000)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?(if_exists=<span class="keywordsign">`</span>fail)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;~src&nbsp;dst&nbsp;=<br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;copy_aux&nbsp;~src&nbsp;~dst&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;file_info&nbsp;src<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
@@ -255,12 +270,23 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>follow&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;copy_aux&nbsp;~src:content&nbsp;~dst<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>redo&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;link_path&nbsp;=&nbsp;path_of_destination&nbsp;~src&nbsp;~dst&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eprintf&nbsp;<span class="string">"make_symlink&nbsp;%s&nbsp;%s\n"</span>&nbsp;content&nbsp;link_path;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;if_exists&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>fail&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="comment">(*&nbsp;make_symlink&nbsp;already&nbsp;fails&nbsp;on&nbsp;existing&nbsp;files&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>overwrite<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>update&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;remove&nbsp;link_path&nbsp;<span class="comment">(*&nbsp;remove&nbsp;does&nbsp;not&nbsp;fail&nbsp;on&nbsp;missing&nbsp;files&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;make_symlink&nbsp;~target:content&nbsp;~link_path<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>regular_file&nbsp;_<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;output_path&nbsp;=&nbsp;path_of_destination&nbsp;~src&nbsp;~dst&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">IO</span>.with_out_channel&nbsp;~buffer_size&nbsp;(<span class="keywordsign">`</span>file&nbsp;output_path)&nbsp;~f:(<span class="keyword">fun</span>&nbsp;outchan&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;open_spec&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">match</span>&nbsp;if_exists&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>fail&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">`</span>create_file&nbsp;output_path<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>overwrite&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>update&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">`</span>overwrite_file&nbsp;output_path<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">IO</span>.with_out_channel&nbsp;~buffer_size&nbsp;open_spec&nbsp;~f:(<span class="keyword">fun</span>&nbsp;outchan&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">IO</span>.with_in_channel&nbsp;~buffer_size&nbsp;(<span class="keywordsign">`</span>file&nbsp;src)&nbsp;~f:(<span class="keyword">fun</span>&nbsp;inchan&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;loop&nbsp;()&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">IO</span>.read&nbsp;~count:buffer_size&nbsp;inchan<br>
@@ -274,7 +300,23 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loop&nbsp;()))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>directory&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;new_dir&nbsp;=&nbsp;path_of_destination&nbsp;~src&nbsp;~dst&nbsp;<span class="keyword">in</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;make_directory&nbsp;new_dir<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file_info&nbsp;new_dir<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>absent&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;make_new_directory&nbsp;new_dir<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;smth_else&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;if_exists&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>fail&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>file_exists&nbsp;new_dir)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>overwrite&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;remove&nbsp;new_dir<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;make_new_directory&nbsp;new_dir<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>update&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;smth_else&nbsp;=&nbsp;<span class="keywordsign">`</span>directory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">then</span>&nbsp;return&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">else</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>not_a_directory&nbsp;new_dir)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keywordsign">`</span>stream&nbsp;next_dir&nbsp;=&nbsp;list_directory&nbsp;src&nbsp;<span class="keyword">in</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;loop&nbsp;()&nbsp;=<br>
@@ -297,26 +339,40 @@
 &nbsp;&nbsp;bind_on_error&nbsp;(copy_aux&nbsp;~src&nbsp;~dst)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>copy&nbsp;src,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file_exists&nbsp;_<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>wrong_path&nbsp;_<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file_not_found&nbsp;_<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>not_a_directory&nbsp;_<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>wrong_file_kind&nbsp;_&nbsp;<span class="keyword">as</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>copy&nbsp;src,&nbsp;e))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>system&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;e)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
-<span class="keyword">let</span>&nbsp;move_in_same_device&nbsp;~src&nbsp;dst&nbsp;=<br>
+<span class="keyword">let</span>&nbsp;move_in_same_device&nbsp;?(if_exists=<span class="keywordsign">`</span>fail)&nbsp;~src&nbsp;dst&nbsp;=<br>
 &nbsp;&nbsp;<span class="keyword">let</span>&nbsp;real_dest&nbsp;=&nbsp;path_of_destination&nbsp;~src&nbsp;~dst&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;if_exists&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>fail&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;file_info&nbsp;real_dest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>absent&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>move&nbsp;src,&nbsp;<span class="keywordsign">`</span>file_exists&nbsp;real_dest))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="comment">(*&nbsp;Unix.rename&nbsp;does&nbsp;overwriting&nbsp;*)</span>&nbsp;return&nbsp;()<br>
+&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;<span class="constructor">Lwt</span>.catch<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.rename&nbsp;src&nbsp;real_dest&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;(<span class="constructor">Ok</span>&nbsp;<span class="keywordsign">`</span>moved))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Unix</span>.<span class="constructor">Unix_error</span>&nbsp;(<span class="constructor">Unix</span>.<span class="constructor">EXDEV</span>,&nbsp;cmd,&nbsp;arg)&nbsp;&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;<span class="keywordsign">`</span>must_copy<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Unix</span>.<span class="constructor">Unix_error</span>&nbsp;(<span class="constructor">Unix</span>.<span class="constructor">ENOTEMPTY</span>,&nbsp;cmd,&nbsp;arg)&nbsp;&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;<span class="keywordsign">`</span>must_copy<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system&nbsp;(<span class="keywordsign">`</span>move&nbsp;src,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e))<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 <br>
-<span class="keyword">let</span>&nbsp;move&nbsp;?ignore_strange&nbsp;?symlinks&nbsp;?buffer_size&nbsp;~src&nbsp;dst&nbsp;=<br>
-&nbsp;&nbsp;move_in_same_device&nbsp;~src&nbsp;dst<br>
+<span class="keyword">let</span>&nbsp;move&nbsp;?ignore_strange&nbsp;?symlinks&nbsp;?buffer_size&nbsp;?if_exists&nbsp;~src&nbsp;dst&nbsp;=<br>
+&nbsp;&nbsp;move_in_same_device&nbsp;?if_exists&nbsp;~src&nbsp;dst<br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>moved&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;()<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>must_copy&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;copy&nbsp;~src&nbsp;?buffer_size&nbsp;?ignore_strange&nbsp;?symlinks&nbsp;dst<br>
+&nbsp;&nbsp;&nbsp;&nbsp;copy&nbsp;~src&nbsp;?buffer_size&nbsp;?ignore_strange&nbsp;?symlinks&nbsp;?if_exists&nbsp;dst<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;remove&nbsp;src<br>
 &nbsp;&nbsp;<span class="keyword">end</span><br>

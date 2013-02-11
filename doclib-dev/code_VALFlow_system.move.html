@@ -15,12 +15,12 @@
 <link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_system.move</title>
 </head>
 <body>
-<code class="code"><span class="keyword">let</span>&nbsp;move&nbsp;?ignore_strange&nbsp;?symlinks&nbsp;?buffer_size&nbsp;~src&nbsp;dst&nbsp;=<br>
-&nbsp;&nbsp;move_in_same_device&nbsp;~src&nbsp;dst<br>
+<code class="code"><span class="keyword">let</span>&nbsp;move&nbsp;?ignore_strange&nbsp;?symlinks&nbsp;?buffer_size&nbsp;?if_exists&nbsp;~src&nbsp;dst&nbsp;=<br>
+&nbsp;&nbsp;move_in_same_device&nbsp;?if_exists&nbsp;~src&nbsp;dst<br>
 &nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>moved&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;()<br>
 &nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>must_copy&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;copy&nbsp;~src&nbsp;?buffer_size&nbsp;?ignore_strange&nbsp;?symlinks&nbsp;dst<br>
+&nbsp;&nbsp;&nbsp;&nbsp;copy&nbsp;~src&nbsp;?buffer_size&nbsp;?ignore_strange&nbsp;?symlinks&nbsp;?if_exists&nbsp;dst<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;remove&nbsp;src<br>
 &nbsp;&nbsp;<span class="keyword">end</span></code></body></html>

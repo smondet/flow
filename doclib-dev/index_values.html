@@ -78,15 +78,33 @@ Copy files or directories (recursively).
 </div>
 </td></tr>
 <tr><td align="left"><br>D</td></tr>
+<tr><td><a href="Flow_system.Shell.html#VALdo_or_fail">do_or_fail</a> [<a href="Flow_system.Shell.html">Flow_system.Shell</a>]</td>
+<td><div class="info">
+Make <code class="code">/bin/sh</code> execute a command, fail if it does not return 0.
+</div>
+</td></tr>
 <tr><td><a href="Flow_base.html#VALdouble_bind">double_bind</a> [<a href="Flow_base.html">Flow_base</a>]</td>
 <td><div class="info">
 Do something on both sides.
 </div>
 </td></tr>
 <tr><td align="left"><br>E</td></tr>
+<tr><td><a href="Flow_system.html#VALensure_directory_path">ensure_directory_path</a> [<a href="Flow_system.html">Flow_system</a>]</td>
+<td><div class="info">
+Create as many directories as needed (can be 0) to ensure that the
+    directory path exists (like <code class="code">mkdir -p</code>).
+</div>
+</td></tr>
 <tr><td><a href="Flow_base.html#VALerror">error</a> [<a href="Flow_base.html">Flow_base</a>]</td>
 <td><div class="info">
 Use anything as an Error thread.
+</div>
+</td></tr>
+<tr><td><a href="Flow_system.Shell.html#VALexecute">execute</a> [<a href="Flow_system.Shell.html">Flow_system.Shell</a>]</td>
+<td><div class="info">
+Execute a shell command and return its standard output, standard error,
+      and exit code
+      <code class="code">stdout, stderr</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>F</td></tr>
@@ -134,12 +152,6 @@ Sequentially launch <code class="code">f</code> on the first argument and proces
     whole list even if there are errors.
 </div>
 </td></tr>
-<tr><td align="left"><br>G</td></tr>
-<tr><td><a href="Flow_system.html#VALget_system_command_output">get_system_command_output</a> [<a href="Flow_system.html">Flow_system</a>]</td>
-<td><div class="info">
-Execute a shell command and return its <code class="code">stdout, stderr</code>.
-</div>
-</td></tr>
 <tr><td align="left"><br>I</td></tr>
 <tr><td><a href="Flow_net.html#VALin_channel">in_channel</a> [<a href="Flow_net.html">Flow_net</a>]</td>
 <td></td></tr>
@@ -156,14 +168,15 @@ Get all the children of a directory, through a <code class="code">next</code> st
 </div>
 </td></tr>
 <tr><td align="left"><br>M</td></tr>
-<tr><td><a href="Flow_system.html#VALmake_directory">make_directory</a> [<a href="Flow_system.html">Flow_system</a>]</td>
+<tr><td><a href="Flow_system.html#VALmake_new_directory">make_new_directory</a> [<a href="Flow_system.html">Flow_system</a>]</td>
 <td><div class="info">
-Create a directory and its potential parents.
+Create a new empty directory or fail if it already exists (i.e.
 </div>
 </td></tr>
 <tr><td><a href="Flow_system.html#VALmake_symlink">make_symlink</a> [<a href="Flow_system.html">Flow_system</a>]</td>
 <td><div class="info">
-Make a symbolic link <code class="code">link_path</code> pointing at <code class="code">target</code>.
+Make a symbolic link <code class="code">link_path</code> pointing at
+    <code class="code">target</code>.
 </div>
 </td></tr>
 <tr><td><a href="Flow_base.html#VALmap_option">map_option</a> [<a href="Flow_base.html">Flow_base</a>]</td>
@@ -235,11 +248,6 @@ Note that <code class="code">shutdown connection</code> closes the channels.
 <tr><td><a href="Flow_system.html#VALsleep">sleep</a> [<a href="Flow_system.html">Flow_system</a>]</td>
 <td><div class="info">
 Block for a given amount of seconds (<code class="code"><span class="constructor">Lwt_unix</span>.sleep</code>).
-</div>
-</td></tr>
-<tr><td><a href="Flow_system.html#VALsystem_command">system_command</a> [<a href="Flow_system.html">Flow_system</a>]</td>
-<td><div class="info">
-Make <code class="code">/bin/sh</code> execute a command.
 </div>
 </td></tr>
 <tr><td align="left"><br>T</td></tr>

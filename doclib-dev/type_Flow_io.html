@@ -23,10 +23,18 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;read_file&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(string,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>read_file_error&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;exn&nbsp;])&nbsp;<span class="constructor">Flow_base</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;with_out_channel&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>channel&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.output_channel&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>file&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stderr&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stdout&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?buffer_size:int&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;f:(<span class="constructor">Lwt_io</span>.output_channel&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>a,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;]&nbsp;<span class="keyword">as</span>&nbsp;<span class="keywordsign">'</span>err)&nbsp;<span class="constructor">Flow_base</span>.t)&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>err)&nbsp;<span class="constructor">Flow_base</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;f:(<span class="constructor">Lwt_io</span>.output_channel&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>file_exists&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>wrong_path&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">as</span>&nbsp;<span class="keywordsign">'</span>err)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Flow_base</span>.t)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span>append_to_file&nbsp;<span class="keyword">of</span>&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>channel&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Lwt_io</span>.output_channel<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>create_file&nbsp;<span class="keyword">of</span>&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>overwrite_file&nbsp;<span class="keyword">of</span>&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stderr<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span>stdout&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="keywordsign">'</span>err)&nbsp;<span class="constructor">Flow_base</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;write&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_io</span>.output_channel&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(unit,&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span>io_exn&nbsp;<span class="keyword">of</span>&nbsp;exn&nbsp;])&nbsp;<span class="constructor">Flow_base</span>.t<br>

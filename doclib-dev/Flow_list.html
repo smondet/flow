@@ -25,7 +25,9 @@
 &nbsp;<a class="post" href="Flow_net.html" title="Flow_net">Next</a>
 </div>
 <h1>Module <a href="type_Flow_list.html">Flow_list</a> (<a href="code_Flow_list.html">.ml</a>)</h1>
-<pre><span class="keyword">module</span> Flow_list: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_list.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>Monadic “loops” on lists.<br>
+<pre><span class="keyword">module</span> Flow_list: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_list.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Monadic “loops” on lists.<br>
+</div>
 <hr width="100%">
 <pre><span id="VALwhile_sequential"><span class="keyword">val</span> <a href="code_VALFlow_list.while_sequential.html">while_sequential</a></span> : <code class="type">'a list -> f:('a -> ('c, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -> ('c list, 'b) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Sequentially launch <code class="code">f</code> on the first argument and

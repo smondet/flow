@@ -28,10 +28,12 @@
 &nbsp;<a class="post" href="Flow_list.html" title="Flow_list">Next</a>
 </div>
 <h1>Module <a href="type_Flow_io.html">Flow_io</a> (<a href="code_Flow_io.html">.ml</a>)</h1>
-<pre><span class="keyword">module</span> Flow_io: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_io.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>Useful I/O functions.<br>
+<pre><span class="keyword">module</span> Flow_io: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_io.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Useful I/O functions.<br>
+</div>
 <hr width="100%">
 <br>
-<span id="3_WholeFiles"><h3>Whole Files</h3></span><br>
+<h3 id="3_WholeFiles">Whole Files</h3><br>
 <pre><span id="VALwrite_file"><span class="keyword">val</span> <a href="code_VALFlow_io.write_file.html">write_file</a></span> : <code class="type">string -><br>       content:string -> (unit, [> `write_file_error of string * exn ]) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Write a string to a file.<br>
 </div>
@@ -39,8 +41,8 @@ Write a string to a file.<br>
 Read a string from a file.<br>
 </div>
 <br>
-<span id="3_AccessToChannels"><h3>Access To Channels </h3></span><br>
-<pre><span id="VALwith_out_channel"><span class="keyword">val</span> <a href="code_VALFlow_io.with_out_channel.html">with_out_channel</a></span> : <code class="type">[ `channel of Lwt_io.output_channel | `file of string | `stderr | `stdout ] -><br>       ?buffer_size:int -><br>       f:(Lwt_io.output_channel -> ('a, [> `io_exn of exn ] as 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       ('a, 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
+<h3 id="3_AccessToChannels">Access To Channels </h3><br>
+<pre><span id="VALwith_out_channel"><span class="keyword">val</span> <a href="code_VALFlow_io.with_out_channel.html">with_out_channel</a></span> : <code class="type">?buffer_size:int -><br>       f:(Lwt_io.output_channel -><br>          ('a,<br>           [> `file_exists of string | `io_exn of exn | `wrong_path of string ]<br>           as 'err)<br>          <a href="Flow_base.html#TYPEt">Flow_base.t</a>) -><br>       [ `append_to_file of string<br>       | `channel of Lwt_io.output_channel<br>       | `create_file of string<br>       | `overwrite_file of string<br>       | `stderr<br>       | `stdout ] -> ('a, 'err) <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Run a function <code class="code">f</code> on an output channel, if the channel comes from
     a <code class="code"><span class="keywordsign">`</span>file f</code>, it will be closed before returning (in case of success,
     or error, but not for exceptions).<br>
@@ -61,5 +63,5 @@ Read <code class="code">count</code> bytes from an input-channel (default: “as
     c.f. <a href="http://ocsigen.org/lwt/api/Lwt_io#VALread">Lwt_io.read</a>).<br>
 </div>
 <br>
-<span id="3_BiocamlCrytokitstyleTransforms"><h3>Biocaml/Crytokit-style Transforms</h3></span><br>
+<h3 id="3_BiocamlCrytokitstyleTransforms">Biocaml/Crytokit-style Transforms</h3><br>
 <pre><span class="keyword">module</span> <a href="Flow_io.Transform.html">Transform</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Flow_io.Transform.html">..</a> <code class="code"><span class="keyword">end</span></code></pre></body></html>
