@@ -445,7 +445,7 @@ let test_shell () =
     | e -> error e
     end
   >>= fun () ->
-  
+
   bind_on_error (silent "kill $$")
     begin function
     | `shell (_, `signaled s) when s = Signal.term -> return ()
@@ -467,7 +467,7 @@ let test_shell () =
       >>= begin function
       | (sin, sout, ex) when ok sin sout ex -> return ()
       | (sin, sout, ex) ->
-        fail_test "output of 's /':\n%S\n%S\n%S" sin sout
+        fail_test "output of '%s':\n%S\n%S\n%S" s sin sout
           (<:sexp_of< [ `exited of int | `signaled of Signal.t | `stopped of int ] >>
               ex |! Sexp.to_string_hum)
       end
@@ -490,8 +490,15 @@ let test_shell () =
       ex = `exited 2
       && sin = "bouh\n")
   >>= fun () ->
-  
-  
+
+  let buffer_size = Lwt_io.default_buffer_size () in
+  check_output "for i in `seq 1 %d`; do echo '===============' ; done"
+    buffer_size
+    ~ok:(fun sin sout ex ->
+      String.length sin > buffer_size * 10
+      && ex = `exited 0)
+  >>= fun () ->
+
   say "test_shell: OK";
   return ()
 
