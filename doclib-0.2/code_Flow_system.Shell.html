@@ -1,0 +1,59 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_system.Shell</title>
+</head>
+<body>
+<code class="code"><span class="keyword">struct</span><br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;discriminate_process_status&nbsp;s&nbsp;ret&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;ret&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WEXITED</span>&nbsp;0&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WEXITED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exited&nbsp;n))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSIGNALED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>signaled&nbsp;(<span class="constructor">Signal</span>.of_caml_int&nbsp;n)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSTOPPED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>stopped&nbsp;n))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;do_or_fail&nbsp;s&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bind_on_error&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred&nbsp;<span class="constructor">Lwt_io</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt_unix</span>.system&nbsp;s))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;ret&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;discriminate_process_status&nbsp;s&nbsp;ret<br>
+<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;execute&nbsp;s&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bind_on_error<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~f:(<span class="keyword">fun</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>shell&nbsp;(s,&nbsp;<span class="keywordsign">`</span>exn&nbsp;e)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;inprocess&nbsp;=&nbsp;<span class="constructor">Lwt_process</span>.(open_process_full&nbsp;(shell&nbsp;s))&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_list</span>.map_p&nbsp;<span class="constructor">Lwt_io</span>.read<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[inprocess<span class="keywordsign">#</span>stdout;&nbsp;inprocess<span class="keywordsign">#</span>stderr;&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;output&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inprocess<span class="keywordsign">#</span>status&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;status&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;(status,&nbsp;output)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;=&nbsp;<span class="keyword">fun</span>&nbsp;(ret,&nbsp;output)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;code&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">match</span>&nbsp;ret&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WEXITED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;&nbsp;&nbsp;(<span class="keywordsign">`</span>exited&nbsp;n)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSIGNALED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">`</span>signaled&nbsp;(<span class="constructor">Signal</span>.of_caml_int&nbsp;n))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">WSTOPPED</span>&nbsp;n&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;&nbsp;(<span class="keywordsign">`</span>stopped&nbsp;n)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">match</span>&nbsp;output&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;[out;&nbsp;err]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;return&nbsp;(out,&nbsp;err,&nbsp;code)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keyword">assert</span>&nbsp;<span class="keyword">false</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+<br>
+<span class="keyword">end</span></code></body></html>

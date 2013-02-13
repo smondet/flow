@@ -1,0 +1,26 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_system.with_timeout</title>
+</head>
+<body>
+<code class="code"><span class="keyword">let</span>&nbsp;with_timeout&nbsp;time&nbsp;~f&nbsp;=<br>
+&nbsp;&nbsp;<span class="constructor">Lwt</span>.catch<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_unix</span>.with_timeout&nbsp;time&nbsp;f<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">begin</span>&nbsp;<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lwt_unix</span>.<span class="constructor">Timeout</span>&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>timeout&nbsp;time)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;(<span class="keywordsign">`</span>system_exn&nbsp;e)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span></code></body></html>

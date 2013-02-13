@@ -1,0 +1,36 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of class methods" rel=Appendix href="index_methods.html">
+<link title="Index of class types" rel=Appendix href="index_class_types.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Flow" rel="Chapter" href="Flow.html">
+<link title="Flow_base" rel="Chapter" href="Flow_base.html">
+<link title="Flow_io" rel="Chapter" href="Flow_io.html">
+<link title="Flow_list" rel="Chapter" href="Flow_list.html">
+<link title="Flow_net" rel="Chapter" href="Flow_net.html">
+<link title="Flow_system" rel="Chapter" href="Flow_system.html"><title>The Flow Monad Library : Flow_list.while_sequential</title>
+</head>
+<body>
+<code class="code"><span class="keyword">let</span>&nbsp;while_sequential:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;f:(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>c,&nbsp;<span class="keywordsign">'</span>b)&nbsp;t)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>c&nbsp;list,&nbsp;<span class="keywordsign">'</span>b)&nbsp;t<br>
+&nbsp;&nbsp;=&nbsp;<span class="keyword">fun</span>&nbsp;(<span class="keyword">type</span>&nbsp;b)&nbsp;(l:&nbsp;<span class="keywordsign">'</span>a&nbsp;list)&nbsp;~(f:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>c,&nbsp;b)&nbsp;t)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Map_sequential</span>&nbsp;=&nbsp;<span class="keyword">struct</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">exception</span>&nbsp;<span class="constructor">Local_exception</span>&nbsp;<span class="keyword">of</span>&nbsp;b<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;ms&nbsp;l&nbsp;f&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bind_on_error<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch_deferred<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">fun</span>&nbsp;()&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt_list</span>.map_s&nbsp;(<span class="keyword">fun</span>&nbsp;o&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Lwt</span>.bind&nbsp;(f&nbsp;o)&nbsp;(<span class="keyword">function</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Ok</span>&nbsp;oo&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.return&nbsp;oo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Error</span>&nbsp;ee&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Lwt</span>.fail&nbsp;(<span class="constructor">Local_exception</span>&nbsp;ee)))&nbsp;l))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">function</span>&nbsp;<span class="constructor">Local_exception</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;error&nbsp;e<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;e&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failwithf&nbsp;<span class="string">"Expecting&nbsp;only&nbsp;Local_exception,&nbsp;but&nbsp;got:&nbsp;%s"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Exn</span>.to_string&nbsp;e)&nbsp;())<br>
+&nbsp;&nbsp;<span class="keyword">end</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;<span class="constructor">Map_sequential</span>.ms&nbsp;l&nbsp;f</code></body></html>
