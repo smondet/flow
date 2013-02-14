@@ -2,7 +2,8 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: clean install_library install uninstall uninstall_library tags doc_library doc web
+.PHONY: clean install_library install uninstall uninstall_library \
+        tags doc_library doc web update_licenses
 
 USE_OCAMLFIND = true
 
@@ -36,6 +37,9 @@ SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
 TAGS: $(SOURCES)
       otags $(SOURCES)
 tags: TAGS
+
+update_licenses:
+  sh -c 'find src/ \( -name "*.ml" -o -name "*.mli" \) -exec headache -h LICENSE {} \;'
 
 doc: doc_library
 
