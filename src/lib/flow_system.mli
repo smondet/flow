@@ -33,9 +33,8 @@ val with_timeout : float ->
   f:(unit -> ('a, [> `system_exn of exn | `timeout of float ] as 'b) t) ->
   ('a, 'b) t
 
-(** Create a new empty directory or fail if it already exists (i.e. like [mkdir])
-    and its potential parents.
-    The default permissions are [0o700]. *)
+(** Create a new empty directory or fail if it already exists
+   (i.e. like [mkdir]). The default permissions are [0o700]. *)
 val make_new_directory: ?perm:int -> string ->
   (unit,
    [> `system of
