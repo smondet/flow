@@ -39,9 +39,9 @@ Execute a function <code class="code">f</code> with a timeout (in seconds). If <
     timeouts the error will be <code class="code"><span class="keywordsign">`</span>timeout time</code>.<br>
 </div>
 <pre><span id="VALmake_new_directory"><span class="keyword">val</span> <a href="code_VALFlow_system.make_new_directory.html">make_new_directory</a></span> : <code class="type">?perm:int -><br>       string -><br>       (unit,<br>        [> `system of<br>             [> `make_directory of string ] *<br>             [> `already_exists | `exn of exn | `wrong_access_rights of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
-Create a new empty directory or fail if it already exists (i.e. like <code class="code">mkdir</code>)
-    and its potential parents.
-    The default permissions are <code class="code">0o700</code>.<br>
+Create a new empty directory or fail if it already exists
+(i.e. like <code class="code">mkdir</code>).
+The default permissions are <code class="code">0o700</code>.<br>
 </div>
 <pre><span id="VALensure_directory_path"><span class="keyword">val</span> <a href="code_VALFlow_system.ensure_directory_path.html">ensure_directory_path</a></span> : <code class="type">?perm:int -><br>       string -><br>       (unit,<br>        [> `system of<br>             [> `make_directory of string ] *<br>             [> `exn of exn | `wrong_access_rights of int ] ])<br>       <a href="Flow_base.html#TYPEt">Flow_base.t</a></code></pre><div class="info">
 Create as many directories as needed (can be 0) to ensure that the
