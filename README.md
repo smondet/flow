@@ -76,10 +76,10 @@ Website: [seb.mondet.org/flow](http://seb.mondet.org/flow)
 
 Documentation:
 
-- [Version 0.2](./doclib-0.2/index.html).
-- [Development version](./doclib-dev/index.html).
+- [Version 0.2](http://seb.mondet.org/flow/doclib-0.2/index.html).
+- [Development version](http://seb.mondet.org/flow/doclib-dev/index.html).
 
-Source: 
+Source:
 
 - Current version: [0.2](https://github.com/smondet/flow/archive/0.2.tar.gz)
 - Version [0.1](https://github.com/smondet/flow/archive/0.1.tar.gz)
