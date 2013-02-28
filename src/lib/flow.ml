@@ -25,4 +25,5 @@ include Flow_list
 module IO = Flow_io
 module System = Flow_system
 module Network = Flow_net
+module File_lock = Flow_file_lock
 
