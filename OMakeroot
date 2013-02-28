@@ -7,7 +7,13 @@ DefineCommandVars()
 
 USE_OCAMLFIND = true
 
-OCAMLPACKS[] = core lwt lwt.unix lwt.ssl lwt.preemptive sexplib.syntax
+DEPENDENCIES[] = core lwt lwt.unix lwt.ssl lwt.preemptive sexplib
+CAMLP4_PACKS[]= sexplib.syntax
+OCAMLPACKS[] = $(DEPENDENCIES) $(CAMLP4_PACKS)
+
+LIB_NAME= flow
+
+LIB_VERSION= 0.3-dev
 
 if $(not $(OCAMLFIND_EXISTS))
   eprintln(This project requires ocamlfind, but is was not found.)
@@ -58,12 +64,13 @@ web: doc
   .SUBDIRS: _build/lib/
     LIB_NAME= flow
     .DEFAULT: $(OCamlLibrary $(LIB_NAME), $(LIB_MODULES))
+    REQUIRES=$(concat \,, $(DEPENDENCIES))
     META:
       echo "description = \"Exceptionless layer on top of core+lwt\"" > META
-      echo "version = \"1\"" >> META
+      echo "version = \"$(LIB_VERSION)\"" >> META
       echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
       echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
-      echo "requires = \"core, lwt, lwt.unix, lwt.ssl lwt.preemptive \"" >> META
+      echo "requires = \"$(REQUIRES)\"" >> META
     install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
       ocamlfind install $(LIB_NAME) META *.cm[iox] $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
     uninstall_library:
@@ -71,8 +78,8 @@ web: doc
     doclib/index.html: $(LIB_NAME).cma
       mkdir -p doclib
       ocamlfind ocamldoc \
-        -syntax camlp4o -package core,lwt,lwt.unix,lwt.ssl,lwt.preemptive,sexplib.syntax \
-        -charset UTF-8 -d doclib/ -t "The Flow Monad Library" -html \
+        -syntax camlp4o -package $(concat \,, $(OCAMLPACKS)) \
+        -charset UTF-8 -d doclib/ -t "The Flow Monad Library v. $(LIB_VERSION)" -html \
         -keep-code -colorize-code *.mli *.ml -sort -I .
     doc_library: doclib/index.html
 
