@@ -1,5 +1,5 @@
 (**************************************************************************)
-(*  Copyright (c) 2012, 2013,                                             *)
+(*  Copyright (c) 2013,                                                   *)
 (*                           Sebastien Mondet <seb@mondet.org>,           *)
 (*                           Ashish Agarwal <agarwal1975@gmail.com>.      *)
 (*                                                                        *)
@@ -131,6 +131,22 @@ let main () =
   end
   >>= fun () ->
 
+  File_lock.do_with_lock to_be_created (fun () ->
+    File_lock.lock to_be_created
+    >>= begin function
+    | false -> return ()
+    | true ->
+      fail_test "to_be_created could be locked inside do_with_lock (%s)"
+        to_be_created
+    end
+  )
+  >>= begin function
+  | `ok () -> return ()
+  | `error (`fail_test s) -> fail_test "→ %s" s
+  | other -> error (`test_unexpected_do_with_lock other)
+  end
+  >>= fun () ->
+
   File_lock.do_with_locks [to_be_created; inexistent] (fun () ->
     return ()
   )
@@ -149,6 +165,99 @@ let main () =
   end
   >>= fun () ->
 
+  File_lock.do_with_locks [to_be_created; inexistent] (fun () ->
+    File_lock.lock to_be_created
+    >>= begin function
+    | false -> return ()
+    | true ->
+      fail_test "to_be_created could be locked inside do_with_locks (%s)"
+        to_be_created
+    end
+    >>= fun () ->
+    File_lock.lock inexistent
+    >>= begin function
+    | false -> return ()
+    | true ->
+      fail_test "inexistent could be locked inside do_with_locks (%s)"
+        inexistent
+    end
+  )
+  >>= begin function
+  | `ok () -> return ()
+  | other -> error (`test_unexpected_do_with_locks other)
+  end
+  >>= fun () ->
+
+
+  File_lock.lock to_be_created
+  >>= begin function
+  | true -> return ()
+  | false ->
+    fail_test "to_be_created could not be locked after do_with_locks (%s)"
+      to_be_created
+  end
+  >>= fun () ->
+  File_lock.do_with_locks ~wait:0.1 ~retry:4
+    [to_be_created; inexistent] ~f:(fun () ->
+    say  "THIS SHOULD NEVER BE PRINTED";
+    error (`string "THIS SHOULD NEVER BE PRINTED")
+  )
+  >>< begin function
+  | Ok _ -> fail_test "do_with_locks did not fail on locked file"
+  | Error (`lock (`paths _, `too_many_retries (0.1, 4))) -> return ()
+  | Error e -> error (`test_unexpected_do_with_locks e)
+  end
+  >>= fun () ->
+  File_lock.unlock to_be_created
+  >>= fun () ->
+
+  for_concurrent [ `locker ; `test_with_locker ]
+    begin function
+    | `locker ->
+      File_lock.lock to_be_created
+      >>= fun _ ->
+      System.sleep 0.5
+      >>= fun () ->
+      File_lock.unlock to_be_created
+    | `test_with_locker ->
+      File_lock.do_with_lock
+        ~wait:0.2 ~retry:10 to_be_created ~f:(fun () ->
+          error (`string "voluntary error")
+        )
+      >>= begin function
+      | `error (`string "voluntary error") -> return ()
+      | other -> error (`test_unexpected_do_with_lock other)
+      end
+    end
+  >>= fun ((_ : unit list), errors) ->
+  begin match errors with
+  | [] -> return ()
+  | l -> fail_test "1st concurrent test failed: [\n    %s\n]"
+    (List.map l (fun e ->
+      <:sexp_of<
+        [> `lock of
+            [> `path of string ] *
+              [> `system_sleep of exn
+               | `too_many_retries of float * int
+               | `unix_link of exn
+               | `unix_unlink of exn
+               | `write_file of exn ]
+        | `system_exn of exn
+          | `test_unexpected_do_with_lock of
+              [> `error of [> `string of string ]
+               | `error_and_not_unlocked of
+                   [> `string of string ] *
+                   [> `lock of
+                        [> `path of string ] * [> `unix_unlink of exn ] ]
+               | `ok of unit
+               | `ok_but_not_unlocked of
+                   unit *
+                   [> `lock of
+                        [> `path of string ] * [> `unix_unlink of exn ] ] ] ]
+      >> e |! Sexp.to_string_hum) |! String.concat ~sep:"\n    ")
+  end
+  >>= fun () ->
+
   (* After the do_with_* the directory should only contain 'to_be_created'. *)
   System.file_tree tmp_dir
   >>= begin function
@@ -159,6 +268,10 @@ let main () =
   end
   >>= fun () ->
 
+
+
+
+
   return ()
 
 let () =
@@ -167,49 +280,82 @@ let () =
   | Error e ->
     eprintf "End with Error:\n%s\n%!"
       (<:sexp_of<
-[> `failed_test of string
+
+          [> `failed_test of string
           | `lock of
               [> `path of string | `paths of string list ] *
-              [> `multiple of
-                   [> `lock of
+                [> `multiple of
+                    [> `lock of
                         string * [> `unix_link of exn | `write_file of exn ]
                     | `unlock of string * exn ]
-                   Core.Std.List.t
-               | `system_sleep of exn
-               | `too_many_retries of float * int
-               | `unix_link of exn
-               | `unix_unlink of exn
-               | `write_file of exn ]
+                      Core.Std.List.t
+                | `system_sleep of exn
+                | `too_many_retries of float * int
+                | `unix_link of exn
+                | `unix_unlink of exn
+                | `write_file of exn ]
           | `system of
               [> `file_info of string
-               | `file_tree of string
-               | `list_directory of string
-               | `make_directory of string
-               | `remove of string ] *
-              [> `exn of exn
-               | `file_not_found of string
-               | `wrong_access_rights of int ]
+              | `file_tree of string
+              | `list_directory of string
+              | `make_directory of string
+              | `remove of string ] *
+                [> `exn of exn
+                | `file_not_found of string
+                | `wrong_access_rights of int ]
           | `test_unexpected_do_with_lock of
-              [> `error of [> `string of string ]
-               | `error_and_not_unlocked of
-                   [> `string of string] *
-                   [> `lock of
+              [> `error of
+                  [> `fail_test of string
+                  | `failed_test of string
+                  | `lock of
+                      [> `path of string ] *
+                        [> `unix_link of exn | `write_file of exn ]
+                  | `string of string ]
+              | `error_and_not_unlocked of
+                  [> `fail_test of string
+                  | `failed_test of string
+                  | `lock of
+                      [> `path of string ] *
+                        [> `unix_link of exn | `write_file of exn ]
+                  | `string of string ]
+                *
+                    [> `lock of
                         [> `path of string ] * [> `unix_unlink of exn ] ]
+              | `ok of unit
+              | `ok_but_not_unlocked of
+                  unit *
+                    [ `lock of
+                        [ `path of string ] * [ `unix_unlink of Core.Exn.t ] ] ]
+          | `test_unexpected_do_with_locks of
+              [> `error of
+                   [> `failed_test of string
+                    | `lock of
+                        [> `path of string ] *
+                        [> `unix_link of exn | `write_file of exn ]
+                    | `string of string ]
+               | `error_and_not_unlocked of
+                   [> `failed_test of string
+                    | `lock of
+                        [> `path of string ] *
+                        [> `unix_link of exn | `write_file of exn ]
+                    | `string of string ] * [> `multiple of [> `unlock of string * exn ] list ]
+               | `lock of
+                   [> `paths of string list ] *
+                   [> `multiple of
+                        [> `lock of
+                             string *
+                             [> `unix_link of exn | `write_file of exn ]
+                         | `unlock of string * exn ]
+                        Core.Std.List.t
+                    | `system_sleep of exn
+                    | `too_many_retries of float * int ]
                | `ok of unit
                | `ok_but_not_unlocked of
                    unit *
-                   [> `lock of
-                        [> `path of string ] * [> `unix_unlink of exn ] ] ]
-          | `test_unexpected_do_with_locks of
-              [> `error of [> `string of string]
-               | `error_and_not_unlocked of
-                   [> `string of string] * [> `multiple of [> `unlock of string * exn ] list ]
-               | `ok of unit
-               | `ok_but_not_unlocked of
-                   unit * [> `multiple of [> `unlock of string * exn ] list ] ]
-          | `test_unexpected_file_tree of Flow.System.file_tree
-          | `write_file_error of string * exn ]
+                   [ `multiple of [ `unlock of string * Core.Exn.t ] list ] ]
 
+          | `test_unexpected_file_tree of Flow.System.file_tree
+          | `write_file_error of string * Core.Exn.t ]
        >> e
        |! Sexp.to_string_hum)
 
