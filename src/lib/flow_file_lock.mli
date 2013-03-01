@@ -15,7 +15,7 @@ val unlock :
   (unit, [> `lock of [> `path of string ] * [> `unix_unlink of exn ] ])
     Flow_base.t
 
-val do_with_lock : ?wait:float -> ?retry:int -> string ->
+val with_lock_gen : ?wait:float -> ?retry:int -> string ->
   f:(unit -> ('user_ok, 'user_error) Flow_base.t) ->
   ([>
    | `ok of 'user_ok

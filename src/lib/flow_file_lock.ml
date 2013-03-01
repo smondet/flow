@@ -63,7 +63,7 @@ let unlock path =
   | Error (`exn e) -> error (`lock (`path path, `unix_unlink e))
   end
 
-let do_with_lock ?(wait=0.042) ?(retry=100) file ~f =
+let with_lock_gen ?(wait=0.042) ?(retry=100) file ~f =
   let rec loop try_again =
     lock file
     >>= begin function
@@ -100,7 +100,7 @@ let do_with_lock ?(wait=0.042) ?(retry=100) file ~f =
   end
 
 let with_lock ?wait ?retry file ~f =
-  do_with_lock ?wait ?retry file ~f
+  with_lock_gen ?wait ?retry file ~f
   >>= begin function
   | `ok o -> return o
   | `error e -> error e

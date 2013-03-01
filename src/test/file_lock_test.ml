@@ -113,37 +113,37 @@ let main () =
   >>= fun () ->
 
 
-  File_lock.do_with_lock to_be_created (fun () ->
+  File_lock.with_lock_gen to_be_created (fun () ->
     return ()
   )
   >>= begin function
   | `ok () -> return ()
-  | other -> error (`test_unexpected_do_with_lock other)
+  | other -> error (`test_unexpected_with_lock_gen other)
   end
   >>= fun () ->
 
-  File_lock.do_with_lock to_be_created (fun () ->
+  File_lock.with_lock_gen to_be_created (fun () ->
     error (`string "voluntary error")
   )
   >>= begin function
   | `error (`string "voluntary error") -> return ()
-  | other -> error (`test_unexpected_do_with_lock other)
+  | other -> error (`test_unexpected_with_lock_gen other)
   end
   >>= fun () ->
 
-  File_lock.do_with_lock to_be_created (fun () ->
+  File_lock.with_lock_gen to_be_created (fun () ->
     File_lock.lock to_be_created
     >>= begin function
     | false -> return ()
     | true ->
-      fail_test "to_be_created could be locked inside do_with_lock (%s)"
+      fail_test "to_be_created could be locked inside with_lock_gen (%s)"
         to_be_created
     end
   )
   >>= begin function
   | `ok () -> return ()
   | `error (`fail_test s) -> fail_test "→ %s" s
-  | other -> error (`test_unexpected_do_with_lock other)
+  | other -> error (`test_unexpected_with_lock_gen other)
   end
   >>= fun () ->
 
@@ -220,13 +220,13 @@ let main () =
       >>= fun () ->
       File_lock.unlock to_be_created
     | `test_with_locker ->
-      File_lock.do_with_lock
+      File_lock.with_lock_gen
         ~wait:0.2 ~retry:10 to_be_created ~f:(fun () ->
           error (`string "voluntary error")
         )
       >>= begin function
       | `error (`string "voluntary error") -> return ()
-      | other -> error (`test_unexpected_do_with_lock other)
+      | other -> error (`test_unexpected_with_lock_gen other)
       end
     end
   >>= fun ((_ : unit list), errors) ->
@@ -243,7 +243,7 @@ let main () =
                | `unix_unlink of exn
                | `write_file of exn ]
         | `system_exn of exn
-          | `test_unexpected_do_with_lock of
+          | `test_unexpected_with_lock_gen of
               [> `error of [> `string of string ]
                | `error_and_not_unlocked of
                    [> `string of string ] *
@@ -303,7 +303,7 @@ let () =
                 [> `exn of exn
                 | `file_not_found of string
                 | `wrong_access_rights of int ]
-          | `test_unexpected_do_with_lock of
+          | `test_unexpected_with_lock_gen of
               [> `error of
                   [> `fail_test of string
                   | `failed_test of string
