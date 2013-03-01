@@ -33,6 +33,19 @@ val do_with_lock : ?wait:float -> ?retry:int -> string ->
          | `write_file of exn ] ])
     Flow_base.t
 
+val with_lock: ?wait:float -> ?retry:int -> string ->
+  f:(unit ->
+     ('a,
+      [> `lock of
+          [> `path of string ] *
+            [> `system_sleep of exn
+            | `too_many_retries of float * int
+            | `unix_link of exn
+            | `unix_unlink of exn
+            | `write_file of exn ] ]
+        as 'b)
+       Flow_base.t) ->
+  ('a, 'b) Flow_base.t
 
 val do_with_locks :
   ?wait:float ->

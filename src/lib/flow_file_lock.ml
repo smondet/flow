@@ -99,6 +99,15 @@ let do_with_lock ?(wait=0.042) ?(retry=100) file ~f =
   | Error (`too_many_retries _ as e) -> error (`lock (`path file, e))
   end
 
+let with_lock ?wait ?retry file ~f =
+  do_with_lock ?wait ?retry file ~f
+  >>= begin function
+  | `ok o -> return o
+  | `error e -> error e
+  | `ok_but_not_unlocked (_, e) -> error e
+  | `error_and_not_unlocked (_, e2) -> error (e2)
+  end
+
 let do_with_locks ?(wait=0.042) ?(retry=100) files ~f =
   let is_locked = function `locked _ -> true | _ -> false in
   let unlock_locked l =
