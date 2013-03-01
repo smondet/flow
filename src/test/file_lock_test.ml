@@ -147,30 +147,30 @@ let main () =
   end
   >>= fun () ->
 
-  File_lock.do_with_locks [to_be_created; inexistent] (fun () ->
+  File_lock.with_locks_gen [to_be_created; inexistent] (fun () ->
     return ()
   )
   >>= begin function
   | `ok () -> return ()
-  | other -> error (`test_unexpected_do_with_locks other)
+  | other -> error (`test_unexpected_with_locks_gen other)
   end
   >>= fun () ->
 
-  File_lock.do_with_locks [to_be_created; inexistent] (fun () ->
+  File_lock.with_locks_gen [to_be_created; inexistent] (fun () ->
     error (`string "voluntary error")
   )
   >>= begin function
   | `error (`string "voluntary error") -> return ()
-  | other -> error (`test_unexpected_do_with_locks other)
+  | other -> error (`test_unexpected_with_locks_gen other)
   end
   >>= fun () ->
 
-  File_lock.do_with_locks [to_be_created; inexistent] (fun () ->
+  File_lock.with_locks_gen [to_be_created; inexistent] (fun () ->
     File_lock.lock to_be_created
     >>= begin function
     | false -> return ()
     | true ->
-      fail_test "to_be_created could be locked inside do_with_locks (%s)"
+      fail_test "to_be_created could be locked inside with_locks_gen (%s)"
         to_be_created
     end
     >>= fun () ->
@@ -178,13 +178,13 @@ let main () =
     >>= begin function
     | false -> return ()
     | true ->
-      fail_test "inexistent could be locked inside do_with_locks (%s)"
+      fail_test "inexistent could be locked inside with_locks_gen (%s)"
         inexistent
     end
   )
   >>= begin function
   | `ok () -> return ()
-  | other -> error (`test_unexpected_do_with_locks other)
+  | other -> error (`test_unexpected_with_locks_gen other)
   end
   >>= fun () ->
 
@@ -193,19 +193,19 @@ let main () =
   >>= begin function
   | true -> return ()
   | false ->
-    fail_test "to_be_created could not be locked after do_with_locks (%s)"
+    fail_test "to_be_created could not be locked after with_locks_gen (%s)"
       to_be_created
   end
   >>= fun () ->
-  File_lock.do_with_locks ~wait:0.1 ~retry:4
+  File_lock.with_locks_gen ~wait:0.1 ~retry:4
     [to_be_created; inexistent] ~f:(fun () ->
     say  "THIS SHOULD NEVER BE PRINTED";
     error (`string "THIS SHOULD NEVER BE PRINTED")
   )
   >>< begin function
-  | Ok _ -> fail_test "do_with_locks did not fail on locked file"
+  | Ok _ -> fail_test "with_locks_gen did not fail on locked file"
   | Error (`lock (`paths _, `too_many_retries (0.1, 4))) -> return ()
-  | Error e -> error (`test_unexpected_do_with_locks e)
+  | Error e -> error (`test_unexpected_with_locks_gen e)
   end
   >>= fun () ->
   File_lock.unlock to_be_created
@@ -326,7 +326,7 @@ let () =
                   unit *
                     [ `lock of
                         [ `path of string ] * [ `unix_unlink of Core.Exn.t ] ] ]
-          | `test_unexpected_do_with_locks of
+          | `test_unexpected_with_locks_gen of
               [> `error of
                    [> `failed_test of string
                     | `lock of

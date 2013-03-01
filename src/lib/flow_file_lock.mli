@@ -47,7 +47,7 @@ val with_lock: ?wait:float -> ?retry:int -> string ->
        Flow_base.t) ->
   ('a, 'b) Flow_base.t
 
-val do_with_locks :
+val with_locks_gen :
   ?wait:float ->
   ?retry:int ->
   string list ->

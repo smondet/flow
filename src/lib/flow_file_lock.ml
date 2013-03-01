@@ -108,7 +108,7 @@ let with_lock ?wait ?retry file ~f =
   | `error_and_not_unlocked (_, e2) -> error (e2)
   end
 
-let do_with_locks ?(wait=0.042) ?(retry=100) files ~f =
+let with_locks_gen ?(wait=0.042) ?(retry=100) files ~f =
   let is_locked = function `locked _ -> true | _ -> false in
   let unlock_locked l =
     for_sequential l begin function
