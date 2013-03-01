@@ -104,6 +104,9 @@ let mkdir_even_if_exists ?(perm=0o700) dirname =
     begin function
     | Unix.Unix_error (Unix.EACCES, cmd, arg)  ->
       error (`system (`make_directory dirname, `wrong_access_rights perm))
+    | Unix.Unix_error (Unix.EISDIR, cmd, arg)  ->
+      (* Bypass MacOSX bug https://github.com/janestreet/core/issues/7 *)
+      return ()
     | Unix.Unix_error (Unix.EEXIST, cmd, arg)  -> return ()
     | e -> error (`system (`make_directory dirname, `exn e))
     end
