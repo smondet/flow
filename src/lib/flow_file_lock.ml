@@ -174,3 +174,12 @@ let with_locks_gen ?(wait=0.042) ?(retry=100) files ~f =
   | Error (`system_exn m) -> error (`lock (`paths files, `system_sleep m))
   | Error (`too_many_retries m) -> error (`lock (`paths files, `too_many_retries m))
   end
+
+let with_locks ?wait ?retry file ~f =
+  with_locks_gen ?wait ?retry file ~f
+  >>= begin function
+  | `ok o -> return o
+  | `error e -> error e
+  | `ok_but_not_unlocked (_, e) -> error e
+  | `error_and_not_unlocked (_, e2) -> error (e2)
+  end

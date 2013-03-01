@@ -69,3 +69,24 @@ val with_locks_gen :
          | `system_sleep of exn
          | `too_many_retries of float * int ] ])
     Flow_base.t
+
+val with_locks :
+  ?wait:float ->
+  ?retry:int ->
+  string list ->
+  f:(unit ->
+     ('a,
+      [> `lock of
+          [> `paths of string list ] *
+            [> `multiple of
+                [> `lock of
+                    string *
+                      [> `unix_link of exn | `write_file of exn ]
+                | `unlock of string * exn ]
+                  Core.Std.List.t
+            | `system_sleep of exn
+            | `too_many_retries of float * int ]
+      | `multiple of [> `unlock of string * exn ] list ]
+        as 'b)
+       Flow_base.t) ->
+  ('a, 'b) Flow_base.t
