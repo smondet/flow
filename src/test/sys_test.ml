@@ -461,7 +461,7 @@ let test_shell () =
 
   bind_on_error (silent "ls /some_big_path")
     begin function
-    | `shell (_, `exited 2) -> return ()
+    | `shell (_, `exited 2) | `shell (_, `exited 1) -> return ()
     | e -> error e
     end
   >>= fun () ->
@@ -499,7 +499,7 @@ let test_shell () =
   >>= fun () ->
 
   check_output "ls /some_big_path"
-    ~ok:(fun sin sout ex -> ex = `exited 2)
+    ~ok:(fun sin sout ex -> ex = `exited 2 || ex = `exited 1)
   >>= fun () ->
 
   check_output "kill -9 $$" ~ok:(fun _ _ ex -> ex = `signaled Signal.kill)
