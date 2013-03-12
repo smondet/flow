@@ -223,5 +223,4 @@ val file_tree :
                  | `file_tree of string
                  | `list_directory of string ] *
                    [> `exn of exn
-                   | `file_not_found of string
-                   | `wrong_file_kind of 'b ] ]) t
+                   | `file_not_found of string] ]) t

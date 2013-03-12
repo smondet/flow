@@ -91,6 +91,9 @@ let mkdir_or_fail ?(perm=0o700) dirname =
       error (`system (`make_directory dirname, `wrong_access_rights perm))
     | Unix.Unix_error (Unix.EEXIST, cmd, arg)  ->
       error (`system (`make_directory dirname, `already_exists))
+    | Unix.Unix_error (Unix.EISDIR, cmd, arg)  ->
+      (* Bypass MacOSX bug https://github.com/janestreet/core/issues/7 *)
+      error (`system (`make_directory dirname, `already_exists))
     | e ->
       error (`system (`make_directory dirname, `exn e))
     end
@@ -101,13 +104,16 @@ let mkdir_even_if_exists ?(perm=0o700) dirname =
     begin function
     | Unix.Unix_error (Unix.EACCES, cmd, arg)  ->
       error (`system (`make_directory dirname, `wrong_access_rights perm))
+    | Unix.Unix_error (Unix.EISDIR, cmd, arg)  ->
+      (* Bypass MacOSX bug https://github.com/janestreet/core/issues/7 *)
+      return ()
     | Unix.Unix_error (Unix.EEXIST, cmd, arg)  -> return ()
     | e -> error (`system (`make_directory dirname, `exn e))
     end
 
 let make_new_directory ?perm dirname =
   mkdir_or_fail ?perm dirname
-  
+
 let ensure_directory_path ?perm dirname =
   (* Code inspired by Core.Std.Unix *)
   let init, dirs =
@@ -430,7 +436,6 @@ let file_tree ?(follow_symlinks=false) path =
   bind_on_error (find_aux path)
     begin function
     | `io_exn e -> error (`system (`file_tree path, `exn e))
-    | `file_not_found _
-    | `wrong_file_kind _ as e -> error (`system (`file_tree path, e))
+    | `file_not_found _ as e -> error (`system (`file_tree path, e))
     | `system e -> error (`system e)
     end

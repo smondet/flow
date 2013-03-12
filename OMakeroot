@@ -37,7 +37,7 @@ clean:
 install: install_library
 uninstall: uninstall_library
 
-LIB_MODULES[] = flow_base flow_list flow_io flow_system flow_net flow
+LIB_MODULES[] = flow_base flow_list flow_io flow_system flow_net flow_file_lock flow
 SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
 
 TAGS: $(SOURCES)
@@ -87,7 +87,13 @@ web: doc
     OCAMLFLAGS += -I ../lib
     OCAMLCFLAGS += flow.cma
     OCAMLOPTFLAGS += flow.cmxa
-    io_test.cmx: ../lib/flow.cmxa
-    sys_test.cmx: ../lib/flow.cmxa
-    .DEFAULT: $(OCamlProgram io_test, io_test) $(OCamlProgram sys_test, sys_test)
+    flow_test(t) =
+      $(t).cmx: ../lib/$(LIB_NAME).cmxa
+      $(t).o: ../lib/$(LIB_NAME).cmxa
+      $(t).cmi: ../lib/$(LIB_NAME).cma
+      $(t).cmo: ../lib/$(LIB_NAME).cma
+      .DEFAULT: $(OCamlProgram $(t), $(t))
+    flow_test(io_test)
+    flow_test(sys_test)
+    flow_test(file_lock_test)
 
