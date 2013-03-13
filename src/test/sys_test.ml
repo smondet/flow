@@ -512,7 +512,8 @@ let test_shell () =
   >>= fun () ->
 
   let buffer_size = Lwt_io.default_buffer_size () in
-  check_output "for i in `seq 1 %d`; do echo '===============' ; done"
+  check_output "i=0; max=%d ; while [ $i -lt $max ]; do \
+                echo '===============' ; i=$[ $i + 1]; done"
     buffer_size
     ~ok:(fun sin sout ex ->
       String.length sin > buffer_size * 10
