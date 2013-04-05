@@ -511,15 +511,6 @@ let test_shell () =
       && sin = "bouh\n")
   >>= fun () ->
 
-  let buffer_size = Lwt_io.default_buffer_size () in
-  check_output "i=0; max=%d ; while [ $i -lt $max ]; do \
-                echo '===============' ; i=$[ $i + 1]; done"
-    buffer_size
-    ~ok:(fun sin sout ex ->
-      String.length sin > buffer_size * 10
-      && ex = `exited 0)
-  >>= fun () ->
-
   say "test_shell: OK";
   return ()
 
