@@ -132,13 +132,16 @@ let main () =
   >>= fun () ->
 
   File_lock.with_lock_gen to_be_created (fun () ->
-    File_lock.lock to_be_created
-    >>= begin function
-    | false -> return ()
-    | true ->
-      fail_test "to_be_created could be locked inside with_lock_gen (%s)"
-        to_be_created
-    end
+    while_sequential (List.init 42 (fun _ -> ())) (fun () ->
+      File_lock.lock to_be_created
+      >>= begin function
+      | false -> return ()
+      | true ->
+        fail_test "to_be_created could be locked inside with_lock_gen (%s)"
+          to_be_created
+      end)
+    >>= fun (_ : unit list) ->
+    return ()
   )
   >>= begin function
   | `ok () -> return ()
@@ -211,42 +214,105 @@ let main () =
   File_lock.unlock to_be_created
   >>= fun () ->
 
-  for_concurrent [ `locker ; `test_with_locker ]
+  let who_has_the_lock = ref None in
+  let i_got_the_lock s =
+    match !who_has_the_lock with
+    | None ->
+      who_has_the_lock := Some s;
+      return ()
+    | Some other -> fail_test "%s got the lock but %s already had it" s other
+  in
+  let i_am_going_to_release_the_lock s =
+    match !who_has_the_lock with
+    | Some m when m = s -> who_has_the_lock := None; return ()
+    | None -> fail_test "%s is releasing a lock they don't have !" s
+    | Some other -> fail_test "%s is releasing a lock owned by %s" s other
+  in
+  for_concurrent (List.init 20 (fun i ->
+      match Random.int 3 with
+      | 0 -> `locker i
+      | 1 -> `with_locks i
+      | _ -> `error_in_lock_gen i))
     begin function
-    | `locker ->
+    | `locker i ->
+      let name = sprintf "locker %d" i in
       File_lock.lock to_be_created
-      >>= fun _ ->
-      System.sleep 0.5
-      >>= fun () ->
-      File_lock.unlock to_be_created
-    | `test_with_locker ->
-      File_lock.with_lock_gen
-        ~wait:0.2 ~retry:10 to_be_created ~f:(fun () ->
-          error (`string "voluntary error")
-        )
       >>= begin function
-      | `error (`string "voluntary error") -> return ()
-      | other -> error (`test_unexpected_with_lock_gen other)
+      | true ->
+        i_got_the_lock name >>= fun () ->
+        System.sleep (Random.float 0.2) >>= fun () ->
+        i_am_going_to_release_the_lock name >>= fun () ->
+        File_lock.unlock to_be_created
+      | false ->
+        return ()
+      end
+    | `with_locks i ->
+      let name = sprintf "with_locks %d" i in
+      let a1 = Filename.concat tmp_dir "inexistent1" in
+      let a2 = Filename.concat tmp_dir "inexistent2" in
+      let a3 = Filename.concat tmp_dir "inexistent3" in
+      File_lock.with_locks
+        ~wait:0.2 ~retry:10 [a1; to_be_created; a2; a3] ~f:(fun () ->
+        i_got_the_lock name >>= fun () ->
+        System.sleep (Random.float 0.2) >>= fun () ->
+        i_am_going_to_release_the_lock name >>= fun () ->
+        return ())
+      >>< begin function
+      | Ok () -> return ()
+      | Error (`lock (`paths _, `too_many_retries _)) ->
+        (* This is a legitimate error. *)
+        return ()
+      | Error e -> error e
+      end
+    | `error_in_lock_gen i ->
+      let name = sprintf "error_in_lock_gen %d" i in
+      File_lock.with_lock_gen
+        ~wait:0.3 ~retry:10 to_be_created ~f:(fun () ->
+        i_got_the_lock name >>= fun () ->
+        System.sleep (Random.float 0.2) >>= fun () ->
+        i_am_going_to_release_the_lock name >>= fun () ->
+        error (`string "voluntary error")
+      )
+      >>< begin function
+      | Ok (`error (`string "voluntary error")) -> return ()
+      | Error (`lock (`path _, `too_many_retries _)) ->
+        (* This is a legitimate error. *)
+        return ()
+      | Error  e -> error e
+      | Ok other -> error (`test_unexpected_with_lock_gen other)
       end
     end
   >>= fun ((_ : unit list), errors) ->
   begin match errors with
   | [] -> return ()
   | l -> fail_test "1st concurrent test failed: [\n    %s\n]"
-    (List.map l (fun e ->
-      <:sexp_of<
-        [> `lock of
-            [> `path of string ] *
+           (List.map l (fun e ->
+              <:sexp_of<
+         [> `failed_test of string
+                | `error of [> `string of string ]
+          | `lock of
+              [> `path of string | `paths of string list ] *
               [> `system_sleep of exn
+                | `multiple of
+                   [> `lock of
+                        string * [> `unix_link of exn | `write_file of exn ]
+                    | `unlock of string * exn ]
+                   Core.Std.List.t
                | `too_many_retries of float * int
                | `unix_link of exn
                | `unix_unlink of exn
                | `write_file of exn ]
-        | `system_exn of exn
+          | `system_exn of exn
+          | `multiple of [> `unlock of string * exn ] list
           | `test_unexpected_with_lock_gen of
-              [> `error of [> `string of string ]
+              [> `error of
+                   [> `failed_test of string
+                    | `string of string
+                    | `system_exn of exn ]
                | `error_and_not_unlocked of
-                   [> `string of string ] *
+                   [> `failed_test of string
+                    | `string of string
+                    | `system_exn of exn ] *
                    [> `lock of
                         [> `path of string ] * [> `unix_unlink of exn ] ]
                | `ok of unit
@@ -254,7 +320,7 @@ let main () =
                    unit *
                    [> `lock of
                         [> `path of string ] * [> `unix_unlink of exn ] ] ] ]
-      >> e |! Sexp.to_string_hum) |! String.concat ~sep:"\n    ")
+              >> e |! Sexp.to_string_hum) |! String.concat ~sep:"\n    ")
   end
   >>= fun () ->
 
