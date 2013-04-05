@@ -84,14 +84,9 @@ web: doc
     doc_library: doclib/index.html
 
   .SUBDIRS: _build/test/
-    OCAMLFLAGS += -I ../lib
-    OCAMLCFLAGS += flow.cma
-    OCAMLOPTFLAGS += flow.cmxa
+    OCAML_LIBS = ../lib/flow
+    OCAMLINCLUDES += $(dir ../lib)
     flow_test(t) =
-      $(t).cmx: ../lib/$(LIB_NAME).cmxa
-      $(t).o: ../lib/$(LIB_NAME).cmxa
-      $(t).cmi: ../lib/$(LIB_NAME).cma
-      $(t).cmo: ../lib/$(LIB_NAME).cma
       .DEFAULT: $(OCamlProgram $(t), $(t))
     flow_test(io_test)
     flow_test(sys_test)
