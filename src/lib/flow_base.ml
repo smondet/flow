@@ -29,11 +29,12 @@ include  Monad.Make2(struct
     | Error e -> Lwt.return (Error e)
     | Ok o -> f o)
 
-  let map x ~f =
+  let map = `Custom (fun x ~f ->
     Lwt.map (function
     | Error _ as e -> e
     | Ok o -> Ok (f o)
     ) x
+    )
 
 end)
 type ('a, 'b) t = ('a, 'b) Result.t Lwt.t
